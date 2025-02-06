@@ -9,13 +9,29 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize session state for file upload
+# Initialize session state for file upload and editing
 if 'upload_state' not in st.session_state:
     st.session_state.upload_state = {
         'processing': False,
         'current_file': None,
         'error': None
     }
+
+# Initialize editing state
+if 'editing' not in st.session_state:
+    st.session_state.editing = None
+
+# Initialize confirmation dialogs state
+if 'confirm_delete' not in st.session_state:
+    st.session_state.confirm_delete = False
+
+# Initialize processed files state
+if 'processed_files' not in st.session_state:
+    st.session_state.processed_files = set()
+
+# Initialize storage if not exists
+if 'storage' not in st.session_state:
+    st.session_state.storage = Storage()
 
 def process_uploaded_file(uploaded_file):
     """Process a single uploaded file with proper error handling"""
@@ -432,9 +448,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
-if 'storage' not in st.session_state:
-    st.session_state.storage = Storage()
 
 if __name__ == "__main__":
     main()
