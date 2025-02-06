@@ -361,6 +361,9 @@ st.markdown("""
         border-radius: 8px;
         font-family: 'SolaimanLipi', Arial, sans-serif !important;
         border: 1px solid #e0e0e0;
+        font-size: 16px !important;
+        min-height: 45px;
+        padding: 0.5rem;
     }
     h1 {
         color: #1E1E1E;
@@ -432,18 +435,31 @@ st.markdown("""
         background-color: #218838;
         box-shadow: 0 4px 8px rgba(40,167,69,0.2);
     }
+    input, textarea, .stTextInput, .stSelectbox, [data-baseweb="input"] {
+        font-family: 'SolaimanLipi', Arial, sans-serif !important;
+    }
+    * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    ::placeholder {
+        font-family: 'SolaimanLipi', Arial, sans-serif !important;
+        opacity: 0.7;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Add Bangla font support
+# Add Bangla font support with multiple sources for better compatibility
 st.markdown("""
 <style>
 @font-face {
     font-family: 'SolaimanLipi';
-    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
-}
-* {
-    font-family: 'SolaimanLipi', Arial, sans-serif !important;
+    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.woff2') format('woff2'),
+         url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.woff') format('woff'),
+         url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
 }
 </style>
 """, unsafe_allow_html=True)
