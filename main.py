@@ -9,6 +9,42 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Set page configuration
+st.set_page_config(
+    page_title="বাংলা টেক্সট প্রসেসিং",
+    page_icon="📝",
+    layout="wide"
+)
+
+# Theme toggle in sidebar
+if 'theme' not in st.session_state:
+    st.session_state.theme = "light"
+
+with st.sidebar:
+    # Add theme toggle before the navigation
+    theme = st.selectbox(
+        "🎨 থিম পরিবর্তন করুন",
+        ["লাইট মোড", "ডার্ক মোড"],
+        index=0 if st.session_state.theme == "light" else 1,
+        key="theme_selector"
+    )
+
+    # Update theme based on selection
+    if theme == "ডার্ক মোড" and st.session_state.theme == "light":
+        st.session_state.theme = "dark"
+        st.experimental_set_query_params(theme="dark")
+        st.experimental_rerun()
+    elif theme == "লাইট মোড" and st.session_state.theme == "dark":
+        st.session_state.theme = "light"
+        st.experimental_set_query_params(theme="light")
+        st.experimental_rerun()
+
+    page = st.sidebar.radio(
+        "📑 পৃষ্ঠা নির্বাচন করুন",
+        ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
+    )
+
+
 # Initialize session state for file upload and editing
 if 'upload_state' not in st.session_state:
     st.session_state.upload_state = {
@@ -434,13 +470,6 @@ def show_search_page():
                 st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
                 logger.error(f"Search error: {str(e)}")
 
-# Set page configuration
-st.set_page_config(
-    page_title="বাংলা টেক্সট প্রসেসিং",
-    page_icon="📝",
-    layout="wide"
-)
-
 # Custom CSS
 st.markdown("""
 <style>
@@ -576,12 +605,6 @@ st.markdown("""
 
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
-
-    # Sidebar navigation with icons
-    page = st.sidebar.radio(
-        "📑 পৃষ্ঠা নির্বাচন করুন",
-        ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
-    )
 
     if "🏠 হোম" in page:
         show_home_page()
