@@ -50,6 +50,13 @@ st.markdown("""
         border-radius: 5px;
         margin: 1rem 0;
     }
+    .record-card {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
     .delete-button {
         background-color: #dc3545;
         color: white;
@@ -65,6 +72,19 @@ st.markdown("""
         border-radius: 5px;
         border: none;
         cursor: pointer;
+    }
+    .edit-form {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .confirm-delete {
+        background-color: #fff3f3;
+        padding: 1rem;
+        border-radius: 5px;
+        border: 1px solid #dc3545;
+        margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -88,27 +108,69 @@ if 'storage' not in st.session_state:
 
 def edit_record(record_id, record_data):
     """Edit record dialog"""
+    st.markdown("<div class='edit-form'>", unsafe_allow_html=True)
     with st.form(key=f'edit_form_{record_id}'):
         st.subheader("📝 রেকর্ড সম্পাদনা")
         edited_data = {}
 
-        edited_data['ক্রমিক_নং'] = st.text_input("ক্রমিক নং", value=record_data['ক্রমিক_নং'])
-        edited_data['নাম'] = st.text_input("নাম", value=record_data['নাম'])
-        edited_data['ভোটার_নং'] = st.text_input("ভোটার নং", value=record_data['ভোটার_নং'])
-        edited_data['পিতার_নাম'] = st.text_input("পিতার নাম", value=record_data['পিতার_নাম'])
-        edited_data['মাতার_নাম'] = st.text_input("মাতার নাম", value=record_data['মাতার_নাম'])
-        edited_data['পেশা'] = st.text_input("পেশা", value=record_data['পেশা'])
-        edited_data['জন্ম_তারিখ'] = st.text_input("জন্ম তারিখ", value=record_data['জন্ম_তারিখ'])
-        edited_data['ঠিকানা'] = st.text_input("ঠিকানা", value=record_data['ঠিকানা'])
+        # Create two columns for the form
+        col1, col2 = st.columns(2)
+
+        with col1:
+            edited_data['ক্রমিক_নং'] = st.text_input("ক্রমিক নং", value=record_data['ক্রমিক_নং'])
+            edited_data['নাম'] = st.text_input("নাম", value=record_data['নাম'])
+            edited_data['ভোটার_নং'] = st.text_input("ভোটার নং", value=record_data['ভোটার_নং'])
+            edited_data['পিতার_নাম'] = st.text_input("পিতার নাম", value=record_data['পিতার_নাম'])
+
+        with col2:
+            edited_data['মাতার_নাম'] = st.text_input("মাতার নাম", value=record_data['মাতার_নাম'])
+            edited_data['পেশা'] = st.text_input("পেশা", value=record_data['পেশা'])
+            edited_data['জন্ম_তারিখ'] = st.text_input("জন্ম তারিখ", value=record_data['জন্ম_তারিখ'])
+            edited_data['ঠিকানা'] = st.text_input("ঠিকানা", value=record_data['ঠিকানা'])
 
         submit = st.form_submit_button("💾 সংরক্ষণ করুন")
         if submit:
-            if st.session_state.storage.update_record(record_id, edited_data):
-                st.success("✅ রেকর্ড সফলভাবে আপডেট করা হয়েছে")
-                return True
-            else:
-                st.error("❌ রেকর্ড আপডেট করা যায়নি")
+            try:
+                if st.session_state.storage.update_record(record_id, edited_data):
+                    st.success("✅ রেকর্ড সফলভাবে আপডেট করা হয়েছে")
+                    st.balloons()
+                    return True
+                else:
+                    st.error("❌ রেকর্ড আপডেট করা যায়নি")
+            except Exception as e:
+                st.error(f"❌ আপডেট করার সময় সমস্যা হয়েছে: {str(e)}")
+    st.markdown("</div>", unsafe_allow_html=True)
     return False
+
+def display_record_card(record, record_id):
+    """Display a single record in a card format"""
+    st.markdown(f"""
+    <div class='record-card'>
+        <h4>🪪 {record['নাম']}</h4>
+        <p><strong>ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
+        <p><strong>ভোটার নং:</strong> {record['ভোটার_নং']}</p>
+        <p><strong>পিতার নাম:</strong> {record['পিতার_নাম']}</p>
+        <p><strong>মাতার নাম:</strong> {record['মাতার_নাম']}</p>
+        <p><strong>পেশা:</strong> {record['পেশা']}</p>
+        <p><strong>জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
+        <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
+            if edit_record(record_id, record):
+                st.experimental_rerun()
+
+    with col2:
+        if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
+            if st.session_state.storage.delete_record(record_id):
+                st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
+                st.experimental_rerun()
+            else:
+                st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
 
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
@@ -211,62 +273,55 @@ def show_search_page():
         mother_name = st.text_input("👩 মাতার নাম")
 
     with col2:
+        voter_id = st.text_input("🗳️ ভোটার নং")
         occupation = st.text_input("💼 পেশা")
         address = st.text_input("🏠 ঠিকানা")
         dob = st.text_input("📅 জন্ম তারিখ")
 
-    col1, col2 = st.columns(2)
+    if st.button("🔍 অনুসন্ধান করুন", key="search"):
+        with st.spinner('অনুসন্ধান চলছে...'):
+            results = st.session_state.storage.search_records(
+                ক্রমিক_নং=si_number,
+                নাম=name,
+                ভোটার_নং=voter_id,
+                পিতার_নাম=father_name,
+                মাতার_নাম=mother_name,
+                পেশা=occupation,
+                ঠিকানা=address,
+                জন্ম_তারিখ=dob
+            )
 
-    with col1:
-        if st.button("🔍 অনুসন্ধান করুন", key="search"):
-            with st.spinner('অনুসন্ধান চলছে...'):
-                results = st.session_state.storage.search_records(
-                    ক্রমিক_নং=si_number,
-                    নাম=name,
-                    পিতার_নাম=father_name,
-                    মাতার_নাম=mother_name,
-                    পেশা=occupation,
-                    ঠিকানা=address,
-                    জন্ম_তারিখ=dob
-                )
+            if results:
+                st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
 
-                if results:
-                    st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
-
-                    # Show results with edit and delete buttons
-                    for record in results:
-                        record_id = record.pop('id')  # Remove id from display but keep for operations
-
-                        # Create columns for record and buttons
-                        record_col, edit_col, delete_col = st.columns([6, 1, 1])
-
-                        with record_col:
-                            st.write(record)
-
-                        with edit_col:
-                            if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
-                                if edit_record(record_id, record):
-                                    st.experimental_rerun()
-
-                        with delete_col:
-                            if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
-                                if st.session_state.storage.delete_record(record_id):
-                                    st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
-                                    st.experimental_rerun()
-                                else:
-                                    st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
-                else:
-                    st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+                # Show results in card format
+                for record in results:
+                    record_id = record.pop('id')  # Remove id from display but keep for operations
+                    display_record_card(record, record_id)
+            else:
+                st.info("❌ কোন ফলাফল পাওয়া যায়নি")
 
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
 
-    # Add delete all button
-    if st.button("🗑️ সব ডেটা মুছে ফেলুন", key="delete_all"):
-        if st.checkbox("আপনি কি নিশ্চিত?"):
-            st.session_state.storage.delete_all_records()
-            st.success("✅ সব ডেটা মুছে ফেলা হয়েছে")
-            st.experimental_rerun()
+    # Add delete all button with confirmation
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("🗑️ সব ডেটা মুছে ফেলুন", key="delete_all"):
+            st.markdown("""
+            <div class='confirm-delete'>
+                <h4>⚠️ সতর্কতা!</h4>
+                <p>আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_delete"):
+                try:
+                    st.session_state.storage.delete_all_records()
+                    st.success("✅ সব ডেটা সফলভাবে মুছে ফেলা হয়েছে")
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
 
     files = st.session_state.storage.get_file_names()
 
