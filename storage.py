@@ -136,3 +136,15 @@ class Storage:
         if include_id:
             result['id'] = record.id
         return result
+
+    def delete_file_data(self, filename):
+        """Delete all records associated with a specific file."""
+        try:
+            deleted = self.session.query(Record).filter_by(file_name=filename).delete()
+            self.session.commit()
+            logger.info(f"Successfully deleted {deleted} records for file: {filename}")
+            return True
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error deleting records for file {filename}: {str(e)}")
+            raise Exception(f"Failed to delete records for file {filename}: {str(e)}")

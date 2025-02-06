@@ -243,12 +243,49 @@ def show_all_data_page():
         st.info("❌ কোন ফাইল আপলোড করা হয়নি")
         return
 
-    selected_file = st.selectbox(
-        "📁 ফাইল নির্বাচন করুন",
-        files,
-        index=0 if files else None
-    )
+    # Initialize file deletion state if not exists
+    if 'file_to_delete' not in st.session_state:
+        st.session_state.file_to_delete = None
 
+    # File selection and delete button in the same row
+    col1, col2 = st.columns([4, 1])
+
+    with col1:
+        selected_file = st.selectbox(
+            "📁 ফাইল নির্বাচন করুন",
+            files,
+            index=0 if files else None
+        )
+
+    with col2:
+        if selected_file and st.button("🗑️ ফাইল মুছুন", key=f"delete_file_{selected_file}"):
+            st.session_state.file_to_delete = selected_file
+
+    # File deletion confirmation
+    if st.session_state.file_to_delete:
+        st.warning(f"""
+        ⚠️ সতর্কতা!
+        আপনি কি নিশ্চিত যে আপনি '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলতে চান?
+        """)
+
+        confirm_col1, confirm_col2 = st.columns([1, 1])
+        with confirm_col1:
+            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_file_delete", type="primary"):
+                try:
+                    # Delete file and its records
+                    st.session_state.storage.delete_file_data(st.session_state.file_to_delete)
+                    st.success(f"✅ '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলা হয়েছে")
+                    st.session_state.file_to_delete = None
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ ফাইল মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+        with confirm_col2:
+            if st.button("না, বাতিল করুন", key="cancel_file_delete", type="secondary"):
+                st.session_state.file_to_delete = None
+                st.rerun()
+
+    # Display file data
     if selected_file:
         with st.spinner('তথ্য লোড হচ্ছে...'):
             records = st.session_state.storage.get_file_data(selected_file)
