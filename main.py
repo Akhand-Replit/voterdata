@@ -3,6 +3,7 @@ import pandas as pd
 from data_processor import process_text_file
 from storage import Storage
 import io
+import logging
 
 # Set page configuration
 st.set_page_config(
@@ -11,7 +12,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Custom CSS with improved styling
 st.markdown("""
 <style>
     .main {
@@ -34,6 +39,15 @@ st.markdown("""
     h2 {
         color: #2E2E2E;
         padding-bottom: 1rem;
+    }
+    .stProgress > div > div > div > div {
+        background-color: #f63366;
+    }
+    .upload-stats {
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -76,12 +90,48 @@ def show_upload_page():
     )
 
     if uploaded_files:
-        with st.spinner('ফাইল প্রক্রিয়াকরণ চলছে...'):
-            for uploaded_file in uploaded_files:
-                content = uploaded_file.read().decode('utf-8')
-                records = process_text_file(content)
-                st.session_state.storage.add_file_data(uploaded_file.name, records)
-                st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+        total_records = 0
+        for uploaded_file in uploaded_files:
+            with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
+                try:
+                    # Add a progress bar
+                    progress_bar = st.progress(0)
+
+                    # Read and process file
+                    content = uploaded_file.read().decode('utf-8')
+                    records = process_text_file(content)
+
+                    # Update progress
+                    progress_bar.progress(50)
+
+                    # Save to database
+                    st.session_state.storage.add_file_data(uploaded_file.name, records)
+                    progress_bar.progress(100)
+
+                    # Show success message with record count
+                    total_records += len(records)
+                    st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+
+                    # Show detailed stats
+                    st.markdown(f"""
+                    <div class="upload-stats">
+                        📊 <b>ফাইল তথ্য:</b><br>
+                        - মোট রেকর্ড: {len(records)}<br>
+                        - ফাইল নাম: {uploaded_file.name}<br>
+                        - ফাইল সাইজ: {round(len(content)/1024, 2)} KB
+                    </div>
+                    """, unsafe_allow_html=True)
+
+                except Exception as e:
+                    st.error(f"❌ ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}")
+                    logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
+                finally:
+                    # Clean up progress bar
+                    if 'progress_bar' in locals():
+                        progress_bar.empty()
+
+        if total_records > 0:
+            st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
