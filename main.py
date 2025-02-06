@@ -159,10 +159,6 @@ def display_record_card(record, record_id):
     </div>
     """, unsafe_allow_html=True)
 
-    # Add edit state to session state if not exists
-    if 'editing' not in st.session_state:
-        st.session_state.editing = None
-
     col1, col2 = st.columns(2)
 
     with col1:
@@ -171,17 +167,23 @@ def display_record_card(record, record_id):
 
     with col2:
         if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
-            if st.session_state.storage.delete_record(record_id):
-                st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
-                st.experimental_rerun()
-            else:
-                st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
+            # Add confirmation dialog
+            st.warning("আপনি কি নিশ্চিত যে আপনি এই রেকর্ডটি মুছতে চান?")
+            if st.button("হ্যাঁ, মুছে ফেলুন", key=f"confirm_delete_{record_id}"):
+                try:
+                    if st.session_state.storage.delete_record(record_id):
+                        st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
+                        st.rerun()
+                    else:
+                        st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
+                except Exception as e:
+                    st.error(f"❌ রেকর্ড মুছে ফেলার সময় সমস্যা: {str(e)}")
 
     # Show edit form if this record is being edited
     if st.session_state.editing == record_id:
         if edit_record(record_id, record):
             st.session_state.editing = None
-            st.experimental_rerun()
+            st.rerun()
 
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
@@ -196,12 +198,10 @@ def show_all_data_page():
             st.session_state.confirm_delete = True
 
     if st.session_state.confirm_delete:
-        st.markdown("""
-        <div class='confirm-delete'>
-            <h4>⚠️ সতর্কতা!</h4>
-            <p>আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?</p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.warning("""
+        ⚠️ সতর্কতা!
+        আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?
+        """)
 
         confirm_col1, confirm_col2 = st.columns([1, 3])
         with confirm_col1:
@@ -210,13 +210,13 @@ def show_all_data_page():
                     st.session_state.storage.delete_all_records()
                     st.success("✅ সব ডেটা সফলভাবে মুছে ফেলা হয়েছে")
                     st.session_state.confirm_delete = False
-                    st.experimental_rerun()
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
 
             if st.button("না, বাতিল করুন", key="cancel_delete"):
                 st.session_state.confirm_delete = False
-                st.experimental_rerun()
+                st.rerun()
 
     files = st.session_state.storage.get_file_names()
 
