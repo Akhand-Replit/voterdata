@@ -1,7 +1,11 @@
+import logging
 from sqlalchemy import create_engine, Column, String, Integer
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 Base = declarative_base()
 
@@ -75,27 +79,47 @@ class Storage:
 
     def update_record(self, record_id, updated_data):
         """Update a specific record by ID."""
-        record = self.session.query(Record).filter_by(id=record_id).first()
-        if record:
-            for key, value in updated_data.items():
-                setattr(record, key, value)
-            self.session.commit()
-            return True
-        return False
+        try:
+            record = self.session.query(Record).filter_by(id=record_id).first()
+            if record:
+                for key, value in updated_data.items():
+                    if hasattr(record, key):
+                        setattr(record, key, value)
+                self.session.commit()
+                logger.info(f"Successfully updated record with ID: {record_id}")
+                return True
+            return False
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error updating record {record_id}: {str(e)}")
+            return False
 
     def delete_record(self, record_id):
         """Delete a specific record by ID."""
-        record = self.session.query(Record).filter_by(id=record_id).first()
-        if record:
-            self.session.delete(record)
-            self.session.commit()
-            return True
-        return False
+        try:
+            record = self.session.query(Record).filter_by(id=record_id).first()
+            if record:
+                self.session.delete(record)
+                self.session.commit()
+                logger.info(f"Successfully deleted record with ID: {record_id}")
+                return True
+            return False
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error deleting record {record_id}: {str(e)}")
+            return False
 
     def delete_all_records(self):
         """Delete all records from the database."""
-        self.session.query(Record).delete()
-        self.session.commit()
+        try:
+            self.session.query(Record).delete()
+            self.session.commit()
+            logger.info("Successfully deleted all records from the database")
+            return True
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error deleting all records: {str(e)}")
+            raise Exception(f"Failed to delete all records: {str(e)}")
 
     def _record_to_dict(self, record, include_id=False):
         """Convert Record object to dictionary."""

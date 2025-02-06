@@ -157,12 +157,15 @@ def display_record_card(record, record_id):
     </div>
     """, unsafe_allow_html=True)
 
+    # Add edit state to session state if not exists
+    if 'editing' not in st.session_state:
+        st.session_state.editing = None
+
     col1, col2 = st.columns(2)
 
     with col1:
         if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
-            if edit_record(record_id, record):
-                st.experimental_rerun()
+            st.session_state.editing = record_id
 
     with col2:
         if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
@@ -171,6 +174,64 @@ def display_record_card(record, record_id):
                 st.experimental_rerun()
             else:
                 st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
+
+    # Show edit form if this record is being edited
+    if st.session_state.editing == record_id:
+        if edit_record(record_id, record):
+            st.session_state.editing = None
+            st.experimental_rerun()
+
+def show_all_data_page():
+    st.header("📋 সংরক্ষিত সকল তথ্য")
+
+    # Add delete all button with confirmation
+    if 'confirm_delete' not in st.session_state:
+        st.session_state.confirm_delete = False
+
+    col1, col2 = st.columns([1, 3])
+    with col1:
+        if st.button("🗑️ সব ডেটা মুছে ফেলুন", key="delete_all"):
+            st.session_state.confirm_delete = True
+
+    if st.session_state.confirm_delete:
+        st.markdown("""
+        <div class='confirm-delete'>
+            <h4>⚠️ সতর্কতা!</h4>
+            <p>আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?</p>
+        </div>
+        """, unsafe_allow_html=True)
+
+        confirm_col1, confirm_col2 = st.columns([1, 3])
+        with confirm_col1:
+            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_delete_final"):
+                try:
+                    st.session_state.storage.delete_all_records()
+                    st.success("✅ সব ডেটা সফলভাবে মুছে ফেলা হয়েছে")
+                    st.session_state.confirm_delete = False
+                    st.experimental_rerun()
+                except Exception as e:
+                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+            if st.button("না, বাতিল করুন", key="cancel_delete"):
+                st.session_state.confirm_delete = False
+                st.experimental_rerun()
+
+    files = st.session_state.storage.get_file_names()
+
+    if not files:
+        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+        return
+
+    selected_file = st.selectbox("📁 ফাইল নির্বাচন করুন", files)
+
+    if selected_file:
+        with st.spinner('তথ্য লোড হচ্ছে...'):
+            records = st.session_state.storage.get_file_data(selected_file)
+            if records:
+                df = pd.DataFrame(records)
+                st.dataframe(df, use_container_width=True)
+            else:
+                st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
@@ -300,45 +361,6 @@ def show_search_page():
                     display_record_card(record, record_id)
             else:
                 st.info("❌ কোন ফলাফল পাওয়া যায়নি")
-
-def show_all_data_page():
-    st.header("📋 সংরক্ষিত সকল তথ্য")
-
-    # Add delete all button with confirmation
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        if st.button("🗑️ সব ডেটা মুছে ফেলুন", key="delete_all"):
-            st.markdown("""
-            <div class='confirm-delete'>
-                <h4>⚠️ সতর্কতা!</h4>
-                <p>আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?</p>
-            </div>
-            """, unsafe_allow_html=True)
-
-            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_delete"):
-                try:
-                    st.session_state.storage.delete_all_records()
-                    st.success("✅ সব ডেটা সফলভাবে মুছে ফেলা হয়েছে")
-                    st.experimental_rerun()
-                except Exception as e:
-                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
-
-    files = st.session_state.storage.get_file_names()
-
-    if not files:
-        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-        return
-
-    selected_file = st.selectbox("📁 ফাইল নির্বাচন করুন", files)
-
-    if selected_file:
-        with st.spinner('তথ্য লোড হচ্ছে...'):
-            records = st.session_state.storage.get_file_data(selected_file)
-            if records:
-                df = pd.DataFrame(records)
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
 if __name__ == "__main__":
     main()
