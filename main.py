@@ -5,6 +5,10 @@ from storage import Storage
 import io
 import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Set page configuration
 st.set_page_config(
     page_title="বাংলা টেক্সট প্রসেসিং",
@@ -12,11 +16,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-# Custom CSS with improved styling
+# Custom CSS
 st.markdown("""
 <style>
     .main {
@@ -97,12 +97,17 @@ def show_upload_page():
                     # Add a progress bar
                     progress_bar = st.progress(0)
 
-                    # Read and process file
+                    # Read file content
                     content = uploaded_file.read().decode('utf-8')
-                    records = process_text_file(content)
+                    progress_bar.progress(25)
 
-                    # Update progress
+                    # Process records
+                    records = process_text_file(content)
                     progress_bar.progress(50)
+
+                    if not records:
+                        st.warning(f"⚠️ '{uploaded_file.name}' থেকে কোন রেকর্ড পাওয়া যায়নি")
+                        continue
 
                     # Save to database
                     st.session_state.storage.add_file_data(uploaded_file.name, records)
@@ -111,6 +116,12 @@ def show_upload_page():
                     # Show success message with record count
                     total_records += len(records)
                     st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+
+                    # Show sample of processed data
+                    if len(records) > 0:
+                        st.markdown("##### নমুনা ডেটা:")
+                        sample_df = pd.DataFrame([records[0]])
+                        st.dataframe(sample_df, use_container_width=True)
 
                     # Show detailed stats
                     st.markdown(f"""

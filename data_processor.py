@@ -9,51 +9,53 @@ def process_text_file(content):
     """Process the text file content and extract structured data."""
     records = []
 
-    # Strip any BOM and normalize whitespace
-    content = content.strip().replace('\ufeff', '')
-
     try:
-        # Split records by looking for Bengali/English numerals followed by dot at line start
-        # More robust pattern that handles various formats
-        raw_records = re.split(r'\n\s*(?=(?:[\u0966-\u096F]+|[0-9]+)\.)', content)
-        logger.info(f"Found {len(raw_records)} potential records in the file")
+        # Remove BOM and normalize newlines
+        content = content.strip().replace('\ufeff', '').replace('\r\n', '\n')
+
+        # Split into records using both Bengali and English numerals
+        # This pattern looks for lines starting with numbers followed by a dot
+        raw_records = re.split(r'\n\s*(?=(?:[০-৯]+|[0-9]+)\.)', content)
+        logger.info(f"Initial split found {len(raw_records)} potential records")
 
         for record in raw_records:
             if not record.strip():
                 continue
 
-            logger.debug(f"Processing record: {record[:50]}...")  # Log first 50 chars
+            logger.debug(f"Processing record: {record[:100]}...")
             record_dict = {}
 
-            # Extract data with more flexible patterns
-            patterns = {
-                'ক্রমিক_নং': r'^(?:[\u0966-\u096F]+|[0-9]+)\.',
-                'নাম': r'নাম:\s*([^,\n।]+)',
-                'ভোটার_নং': r'ভোটার\s*নং:?\s*([^,\n।]+)',
-                'পিতার_নাম': r'পিতা:?\s*([^,\n।]+)',
-                'মাতার_নাম': r'মাতা:?\s*([^,\n।]+)',
-                'পেশা': r'পেশা:?\s*([^,\n।]+)',
-                'জন্ম_তারিখ': r'জন্ম\s*তারিখ:?\s*([^,\n।]+)',
-                'ঠিকানা': r'ঠিকানা:?\s*([^,\n।]+)'
+            # Define field patterns with more flexible matching
+            field_patterns = {
+                'ক্রমিক_নং': (r'^([০-৯]+|[0-9]+)\.', True),  # True means take full match
+                'নাম': (r'নাম:?\s*([^,\n।]+)', False),
+                'ভোটার_নং': (r'ভোটার\s*নং:?\s*([^,\n।]+)', False),
+                'পিতার_নাম': (r'পিতা:?\s*([^,\n।]+)', False),
+                'মাতার_নাম': (r'মাতা:?\s*([^,\n।]+)', False),
+                'পেশা': (r'পেশা:?\s*([^,।\n]+)', False),
+                'জন্ম_তারিখ': (r'জন্ম\s*তারিখ:?\s*([^,\n।]+)', False),
+                'ঠিকানা': (r'ঠিকানা:?\s*([^,\n।]+(?:[,\n।][^,\n।]+)*)', False)
             }
 
-            for field, pattern in patterns.items():
-                match = re.search(pattern, record)
+            # Extract each field
+            for field, (pattern, full_match) in field_patterns.items():
+                match = re.search(pattern, record, re.MULTILINE)
                 if match:
-                    # For ক্রমিক_নং, we want the full number including the dot
-                    value = match.group(0).strip() if field == 'ক্রমিক_নং' else match.group(1).strip()
-                    # Remove the trailing dot from ক্রমিক_নং
+                    # For ক্রমিক_নং, take the full match and remove the dot
+                    value = match.group(0).strip() if full_match else match.group(1).strip()
                     if field == 'ক্রমিক_নং':
                         value = value.rstrip('.')
-                    record_dict[field] = value
+                    record_dict[field] = value.strip()
 
-            if record_dict:
+            # Only add records that have at least a few key fields
+            required_fields = {'ক্রমিক_নং', 'নাম', 'ভোটার_নং'}
+            if all(field in record_dict for field in required_fields):
                 records.append(record_dict)
-                logger.debug(f"Successfully extracted fields: {list(record_dict.keys())}")
+                logger.debug(f"Added record with fields: {list(record_dict.keys())}")
             else:
-                logger.warning(f"No fields extracted from record: {record[:100]}...")
+                logger.warning(f"Skipped incomplete record: missing required fields")
 
-        logger.info(f"Successfully processed {len(records)} records")
+        logger.info(f"Successfully processed {len(records)} complete records")
         return records
 
     except Exception as e:
