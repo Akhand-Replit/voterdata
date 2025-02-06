@@ -290,40 +290,63 @@ def show_search_page():
     # Create two columns for search fields
     col1, col2 = st.columns(2)
 
+    search_params = {}
+
     with col1:
-        si_number = st.text_input("🔢 ক্রমিক নং")
-        name = st.text_input("👤 নাম")
-        father_name = st.text_input("👨 পিতার নাম")
-        mother_name = st.text_input("👩 মাতার নাম")
+        si_number = st.text_input("🔢 ক্রমিক নং", key="search_si")
+        if si_number:
+            search_params['ক্রমিক_নং'] = si_number
+
+        name = st.text_input("👤 নাম", key="search_name")
+        if name:
+            search_params['নাম'] = name
+
+        father_name = st.text_input("👨 পিতার নাম", key="search_father")
+        if father_name:
+            search_params['পিতার_নাম'] = father_name
+
+        mother_name = st.text_input("👩 মাতার নাম", key="search_mother")
+        if mother_name:
+            search_params['মাতার_নাম'] = mother_name
 
     with col2:
-        voter_id = st.text_input("🗳️ ভোটার নং")
-        occupation = st.text_input("💼 পেশা")
-        address = st.text_input("🏠 ঠিকানা")
-        dob = st.text_input("📅 জন্ম তারিখ")
+        voter_id = st.text_input("🗳️ ভোটার নং", key="search_voter")
+        if voter_id:
+            search_params['ভোটার_নং'] = voter_id
+
+        occupation = st.text_input("💼 পেশা", key="search_occupation")
+        if occupation:
+            search_params['পেশা'] = occupation
+
+        address = st.text_input("🏠 ঠিকানা", key="search_address")
+        if address:
+            search_params['ঠিকানা'] = address
+
+        dob = st.text_input("📅 জন্ম তারিখ", key="search_dob")
+        if dob:
+            search_params['জন্ম_তারিখ'] = dob
 
     if st.button("🔍 অনুসন্ধান করুন", key="search"):
+        if not search_params:
+            st.warning("অনুসন্ধানের জন্য কমপক্ষে একটি ক্ষেত্র পূরণ করুন")
+            return
+
         with st.spinner('অনুসন্ধান চলছে...'):
-            results = st.session_state.storage.search_records(
-                ক্রমিক_নং=si_number,
-                নাম=name,
-                ভোটার_নং=voter_id,
-                পিতার_নাম=father_name,
-                মাতার_নাম=mother_name,
-                পেশা=occupation,
-                ঠিকানা=address,
-                জন্ম_তারিখ=dob
-            )
+            try:
+                results = st.session_state.storage.search_records(**search_params)
 
-            if results:
-                st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
+                if results:
+                    st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
 
-                # Show results in card format
-                for record in results:
-                    record_id = record.pop('id')  # Remove id from display but keep for operations
-                    display_record_card(record, record_id)
-            else:
-                st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+                    # Show results in card format
+                    for record in results:
+                        record_id = record.pop('id')  # Remove id from display but keep for operations
+                        display_record_card(record, record_id)
+                else:
+                    st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+            except Exception as e:
+                st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
+                logger.error(f"Search error: {str(e)}")
 
 # Set page configuration
 st.set_page_config(
