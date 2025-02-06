@@ -9,102 +9,13 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Set page configuration
-st.set_page_config(
-    page_title="বাংলা টেক্সট প্রসেসিং",
-    page_icon="📝",
-    layout="wide"
-)
-
-# Custom CSS
-st.markdown("""
-<style>
-    .main {
-        padding: 2rem;
+# Initialize session state for file upload
+if 'upload_state' not in st.session_state:
+    st.session_state.upload_state = {
+        'processing': False,
+        'current_file': None,
+        'error': None
     }
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        height: 3em;
-        background-color: #f63366;
-        color: white;
-    }
-    .stTextInput>div>div>input {
-        border-radius: 5px;
-        font-family: 'SolaimanLipi', Arial, sans-serif !important;
-    }
-    h1 {
-        color: #1E1E1E;
-        padding-bottom: 2rem;
-    }
-    h2 {
-        color: #2E2E2E;
-        padding-bottom: 1rem;
-    }
-    .stProgress > div > div > div > div {
-        background-color: #f63366;
-    }
-    .upload-stats {
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-radius: 5px;
-        margin: 1rem 0;
-    }
-    .record-card {
-        background-color: white;
-        padding: 1rem;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
-    }
-    .delete-button {
-        background-color: #dc3545;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        border: none;
-        cursor: pointer;
-    }
-    .edit-button {
-        background-color: #28a745;
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        border: none;
-        cursor: pointer;
-    }
-    .edit-form {
-        background-color: #f8f9fa;
-        padding: 2rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
-    .confirm-delete {
-        background-color: #fff3f3;
-        padding: 1rem;
-        border-radius: 5px;
-        border: 1px solid #dc3545;
-        margin: 1rem 0;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-# Add Bangla font support
-st.markdown("""
-<style>
-@font-face {
-    font-family: 'SolaimanLipi';
-    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
-}
-* {
-    font-family: 'SolaimanLipi', Arial, sans-serif !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# Initialize session state
-if 'storage' not in st.session_state:
-    st.session_state.storage = Storage()
 
 def edit_record(record_id, record_data):
     """Edit record dialog"""
@@ -263,63 +174,90 @@ def show_upload_page():
     uploaded_files = st.file_uploader(
         "টেক্সট ফাইল নির্বাচন করুন",
         type=['txt'],
-        accept_multiple_files=True
+        accept_multiple_files=True,
+        key="file_uploader"
     )
 
     if uploaded_files:
         total_records = 0
         for uploaded_file in uploaded_files:
-            with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
-                try:
+            try:
+                # Skip if already processed
+                if (st.session_state.upload_state['current_file'] == uploaded_file.name and 
+                    not st.session_state.upload_state['processing']):
+                    continue
+
+                st.session_state.upload_state['processing'] = True
+                st.session_state.upload_state['current_file'] = uploaded_file.name
+                st.session_state.upload_state['error'] = None
+
+                with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
                     # Add a progress bar
                     progress_bar = st.progress(0)
 
-                    # Read file content
-                    content = uploaded_file.read().decode('utf-8')
-                    progress_bar.progress(25)
+                    try:
+                        # Read file content
+                        content = uploaded_file.read().decode('utf-8')
+                        progress_bar.progress(25)
 
-                    # Process records
-                    records = process_text_file(content)
-                    progress_bar.progress(50)
+                        # Process records
+                        records = process_text_file(content)
+                        progress_bar.progress(50)
 
-                    if not records:
-                        st.warning(f"⚠️ '{uploaded_file.name}' থেকে কোন রেকর্ড পাওয়া যায়নি")
-                        continue
+                        if not records:
+                            st.warning(f"⚠️ '{uploaded_file.name}' থেকে কোন রেকর্ড পাওয়া যায়নি")
+                            continue
 
-                    # Save to database
-                    st.session_state.storage.add_file_data(uploaded_file.name, records)
-                    progress_bar.progress(100)
+                        # Save to database
+                        st.session_state.storage.add_file_data(uploaded_file.name, records)
+                        progress_bar.progress(100)
 
-                    # Show success message with record count
-                    total_records += len(records)
-                    st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+                        # Show success message with record count
+                        total_records += len(records)
+                        st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
 
-                    # Show sample of processed data
-                    if len(records) > 0:
-                        st.markdown("##### নমুনা ডেটা:")
-                        sample_df = pd.DataFrame([records[0]])
-                        st.dataframe(sample_df, use_container_width=True)
+                        # Show sample of processed data
+                        if len(records) > 0:
+                            st.markdown("##### নমুনা ডেটা:")
+                            sample_df = pd.DataFrame([records[0]])
+                            st.dataframe(sample_df, use_container_width=True)
 
-                    # Show detailed stats
-                    st.markdown(f"""
-                    <div class="upload-stats">
-                        📊 <b>ফাইল তথ্য:</b><br>
-                        - মোট রেকর্ড: {len(records)}<br>
-                        - ফাইল নাম: {uploaded_file.name}<br>
-                        - ফাইল সাইজ: {round(len(content)/1024, 2)} KB
-                    </div>
-                    """, unsafe_allow_html=True)
+                        # Show detailed stats
+                        st.markdown(f"""
+                        <div class="upload-stats">
+                            📊 <b>ফাইল তথ্য:</b><br>
+                            - মোট রেকর্ড: {len(records)}<br>
+                            - ফাইল নাম: {uploaded_file.name}<br>
+                            - ফাইল সাইজ: {round(len(content)/1024, 2)} KB
+                        </div>
+                        """, unsafe_allow_html=True)
 
-                except Exception as e:
-                    st.error(f"❌ ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}")
-                    logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
-                finally:
-                    # Clean up progress bar
-                    if 'progress_bar' in locals():
-                        progress_bar.empty()
+                    except Exception as e:
+                        logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
+                        st.session_state.upload_state['error'] = str(e)
+                        st.error(f"❌ ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}")
+                    finally:
+                        # Clean up progress bar
+                        if 'progress_bar' in locals():
+                            progress_bar.empty()
+
+                st.session_state.upload_state['processing'] = False
+
+            except Exception as e:
+                logger.error(f"Unexpected error processing file {uploaded_file.name}: {str(e)}")
+                st.error(f"❌ অপ্রত্যাশিত সমস্যা: {str(e)}")
 
         if total_records > 0:
             st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
+
+    # Clear upload state when no files are selected
+    if not uploaded_files:
+        st.session_state.upload_state = {
+            'processing': False,
+            'current_file': None,
+            'error': None
+        }
+
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
@@ -361,6 +299,103 @@ def show_search_page():
                     display_record_card(record, record_id)
             else:
                 st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+
+# Set page configuration
+st.set_page_config(
+    page_title="বাংলা টেক্সট প্রসেসিং",
+    page_icon="📝",
+    layout="wide"
+)
+
+# Custom CSS
+st.markdown("""
+<style>
+    .main {
+        padding: 2rem;
+    }
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        height: 3em;
+        background-color: #f63366;
+        color: white;
+    }
+    .stTextInput>div>div>input {
+        border-radius: 5px;
+        font-family: 'SolaimanLipi', Arial, sans-serif !important;
+    }
+    h1 {
+        color: #1E1E1E;
+        padding-bottom: 2rem;
+    }
+    h2 {
+        color: #2E2E2E;
+        padding-bottom: 1rem;
+    }
+    .stProgress > div > div > div > div {
+        background-color: #f63366;
+    }
+    .upload-stats {
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        margin: 1rem 0;
+    }
+    .record-card {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 1rem;
+    }
+    .delete-button {
+        background-color: #dc3545;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+    .edit-button {
+        background-color: #28a745;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+    .edit-form {
+        background-color: #f8f9fa;
+        padding: 2rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .confirm-delete {
+        background-color: #fff3f3;
+        padding: 1rem;
+        border-radius: 5px;
+        border: 1px solid #dc3545;
+        margin: 1rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Add Bangla font support
+st.markdown("""
+<style>
+@font-face {
+    font-family: 'SolaimanLipi';
+    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
+}
+* {
+    font-family: 'SolaimanLipi', Arial, sans-serif !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# Initialize session state
+if 'storage' not in st.session_state:
+    st.session_state.storage = Storage()
 
 if __name__ == "__main__":
     main()
