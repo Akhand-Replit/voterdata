@@ -16,33 +16,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Theme toggle in sidebar
-if 'theme' not in st.session_state:
-    st.session_state.theme = "light"
-
-with st.sidebar:
-    # Add theme toggle before the navigation
-    theme = st.selectbox(
-        "🎨 থিম পরিবর্তন করুন",
-        ["লাইট মোড", "ডার্ক মোড"],
-        index=0 if st.session_state.theme == "light" else 1,
-        key="theme_selector"
-    )
-
-    # Update theme based on selection
-    if theme == "ডার্ক মোড" and st.session_state.theme == "light":
-        st.session_state.theme = "dark"
-        st.experimental_set_query_params(theme="dark")
-        st.experimental_rerun()
-    elif theme == "লাইট মোড" and st.session_state.theme == "dark":
-        st.session_state.theme = "light"
-        st.experimental_set_query_params(theme="light")
-        st.experimental_rerun()
-
-    page = st.sidebar.radio(
-        "📑 পৃষ্ঠা নির্বাচন করুন",
-        ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
-    )
+# Sidebar navigation with icons
+page = st.sidebar.radio(
+    "📑 পৃষ্ঠা নির্বাচন করুন",
+    ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
+)
 
 
 # Initialize session state for file upload and editing
@@ -405,7 +383,6 @@ def show_home_page():
                 </div>
             """, unsafe_allow_html=True)
 
-
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
 
@@ -606,11 +583,11 @@ st.markdown("""
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
-    if "🏠 হোম" in page:
+    if "🏠 হোম" == page:
         show_home_page()
-    elif "📤 ফাইল আপলোড" in page:
+    elif "📤 ফাইল আপলোড" == page:
         show_upload_page()
-    elif "🔍 অনুসন্ধান" in page:
+    elif "🔍 অনুসন্ধান" == page:
         show_search_page()
     else:
         show_all_data_page()
