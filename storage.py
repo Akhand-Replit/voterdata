@@ -131,7 +131,8 @@ class Storage:
             'মাতার_নাম': record.মাতার_নাম,
             'পেশা': record.পেশা,
             'জন্ম_তারিখ': record.জন্ম_তারিখ,
-            'ঠিকানা': record.ঠিকানা
+            'ঠিকানা': record.ঠিকানা,
+            'file_name': record.file_name
         }
         if include_id:
             result['id'] = record.id

@@ -172,6 +172,9 @@ def display_record_card(record, record_id):
         <p><strong>পেশা:</strong> {record['পেশা']}</p>
         <p><strong>জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
         <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
+        <div style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
+            <p style="color: #666; font-size: 0.9em;">📂 ফাইল অবস্থান: {record['file_name']}</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
