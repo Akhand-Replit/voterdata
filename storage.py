@@ -60,7 +60,7 @@ class Storage:
     def get_all_records(self):
         """Get all records from all files."""
         records = self.session.query(Record).all()
-        return [self._record_to_dict(record) for record in records]
+        return [self._record_to_dict(record, include_id=True) for record in records]
 
     def search_records(self, **kwargs):
         """Search records based on given criteria."""
@@ -71,11 +71,35 @@ class Storage:
                 query = query.filter(getattr(Record, key).ilike(f"%{value}%"))
 
         results = query.all()
-        return [self._record_to_dict(record) for record in results]
+        return [self._record_to_dict(record, include_id=True) for record in results]
 
-    def _record_to_dict(self, record):
+    def update_record(self, record_id, updated_data):
+        """Update a specific record by ID."""
+        record = self.session.query(Record).filter_by(id=record_id).first()
+        if record:
+            for key, value in updated_data.items():
+                setattr(record, key, value)
+            self.session.commit()
+            return True
+        return False
+
+    def delete_record(self, record_id):
+        """Delete a specific record by ID."""
+        record = self.session.query(Record).filter_by(id=record_id).first()
+        if record:
+            self.session.delete(record)
+            self.session.commit()
+            return True
+        return False
+
+    def delete_all_records(self):
+        """Delete all records from the database."""
+        self.session.query(Record).delete()
+        self.session.commit()
+
+    def _record_to_dict(self, record, include_id=False):
         """Convert Record object to dictionary."""
-        return {
+        result = {
             'ক্রমিক_নং': record.ক্রমিক_নং,
             'নাম': record.নাম,
             'ভোটার_নং': record.ভোটার_নং,
@@ -85,3 +109,6 @@ class Storage:
             'জন্ম_তারিখ': record.জন্ম_তারিখ,
             'ঠিকানা': record.ঠিকানা
         }
+        if include_id:
+            result['id'] = record.id
+        return result

@@ -31,6 +31,7 @@ st.markdown("""
     }
     .stTextInput>div>div>input {
         border-radius: 5px;
+        font-family: 'SolaimanLipi', Arial, sans-serif !important;
     }
     h1 {
         color: #1E1E1E;
@@ -49,12 +50,65 @@ st.markdown("""
         border-radius: 5px;
         margin: 1rem 0;
     }
+    .delete-button {
+        background-color: #dc3545;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+    .edit-button {
+        background-color: #28a745;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Add Bangla font support
+st.markdown("""
+<style>
+@font-face {
+    font-family: 'SolaimanLipi';
+    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
+}
+* {
+    font-family: 'SolaimanLipi', Arial, sans-serif !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # Initialize session state
 if 'storage' not in st.session_state:
     st.session_state.storage = Storage()
+
+def edit_record(record_id, record_data):
+    """Edit record dialog"""
+    with st.form(key=f'edit_form_{record_id}'):
+        st.subheader("📝 রেকর্ড সম্পাদনা")
+        edited_data = {}
+
+        edited_data['ক্রমিক_নং'] = st.text_input("ক্রমিক নং", value=record_data['ক্রমিক_নং'])
+        edited_data['নাম'] = st.text_input("নাম", value=record_data['নাম'])
+        edited_data['ভোটার_নং'] = st.text_input("ভোটার নং", value=record_data['ভোটার_নং'])
+        edited_data['পিতার_নাম'] = st.text_input("পিতার নাম", value=record_data['পিতার_নাম'])
+        edited_data['মাতার_নাম'] = st.text_input("মাতার নাম", value=record_data['মাতার_নাম'])
+        edited_data['পেশা'] = st.text_input("পেশা", value=record_data['পেশা'])
+        edited_data['জন্ম_তারিখ'] = st.text_input("জন্ম তারিখ", value=record_data['জন্ম_তারিখ'])
+        edited_data['ঠিকানা'] = st.text_input("ঠিকানা", value=record_data['ঠিকানা'])
+
+        submit = st.form_submit_button("💾 সংরক্ষণ করুন")
+        if submit:
+            if st.session_state.storage.update_record(record_id, edited_data):
+                st.success("✅ রেকর্ড সফলভাবে আপডেট করা হয়েছে")
+                return True
+            else:
+                st.error("❌ রেকর্ড আপডেট করা যায়নি")
+    return False
 
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
@@ -178,23 +232,41 @@ def show_search_page():
 
                 if results:
                     st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
-                    df = pd.DataFrame(results)
-                    st.dataframe(df, use_container_width=True)
+
+                    # Show results with edit and delete buttons
+                    for record in results:
+                        record_id = record.pop('id')  # Remove id from display but keep for operations
+
+                        # Create columns for record and buttons
+                        record_col, edit_col, delete_col = st.columns([6, 1, 1])
+
+                        with record_col:
+                            st.write(record)
+
+                        with edit_col:
+                            if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
+                                if edit_record(record_id, record):
+                                    st.experimental_rerun()
+
+                        with delete_col:
+                            if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
+                                if st.session_state.storage.delete_record(record_id):
+                                    st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
+                                    st.experimental_rerun()
+                                else:
+                                    st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
                 else:
                     st.info("❌ কোন ফলাফল পাওয়া যায়নি")
 
-    with col2:
-        if st.button("📋 সকল তথ্য দেখুন", key="show_all"):
-            with st.spinner('তথ্য লোড হচ্ছে...'):
-                all_records = st.session_state.storage.get_all_records()
-                if all_records:
-                    df = pd.DataFrame(all_records)
-                    st.dataframe(df, use_container_width=True)
-                else:
-                    st.info("❌ কোন তথ্য সংরক্ষিত নেই")
-
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
+
+    # Add delete all button
+    if st.button("🗑️ সব ডেটা মুছে ফেলুন", key="delete_all"):
+        if st.checkbox("আপনি কি নিশ্চিত?"):
+            st.session_state.storage.delete_all_records()
+            st.success("✅ সব ডেটা মুছে ফেলা হয়েছে")
+            st.experimental_rerun()
 
     files = st.session_state.storage.get_file_names()
 
