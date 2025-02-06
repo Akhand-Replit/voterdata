@@ -17,6 +17,101 @@ if 'upload_state' not in st.session_state:
         'error': None
     }
 
+def process_uploaded_file(uploaded_file):
+    """Process a single uploaded file with proper error handling"""
+    try:
+        # Read file content with explicit encoding
+        content = uploaded_file.getvalue().decode('utf-8-sig')
+
+        # Process the content
+        records = process_text_file(content)
+
+        if not records:
+            return None, "কোন রেকর্ড পাওয়া যায়নি"
+
+        return records, None
+    except UnicodeDecodeError:
+        return None, "ফাইলটি সঠিক ফরম্যাটে নেই। দয়া করে UTF-8 এনকোডিং ব্যবহার করুন।"
+    except Exception as e:
+        logger.error(f"Error processing file: {str(e)}")
+        return None, f"ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}"
+
+def show_upload_page():
+    st.header("📤 ফাইল আপলোড")
+
+    # Add description
+    st.markdown("""
+    #### ব্যবহার নির্দেশিকা:
+    1. একাধিক টেক্সট ফাইল একসাথে আপলোড করতে পারবেন
+    2. প্রতিটি ফাইল স্বয়ংক্রিয়ভাবে প্রক্রিয়াকরণ করা হবে
+    3. ডেটা সুরক্ষিতভাবে সংরক্ষণ করা হবে
+    """)
+
+    # Initialize upload states if not exists
+    if 'processed_files' not in st.session_state:
+        st.session_state.processed_files = set()
+
+    try:
+        uploaded_files = st.file_uploader(
+            "টেক্সট ফাইল নির্বাচন করুন",
+            type=['txt'],
+            accept_multiple_files=True,
+            key="file_uploader"
+        )
+
+        if uploaded_files:
+            total_records = 0
+
+            # Process each file
+            for uploaded_file in uploaded_files:
+                # Skip if already processed in this session
+                if uploaded_file.name in st.session_state.processed_files:
+                    continue
+
+                try:
+                    with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
+                        # Create a container for this file's status
+                        file_container = st.container()
+
+                        with file_container:
+                            # Process the file
+                            records, error = process_uploaded_file(uploaded_file)
+
+                            if error:
+                                st.error(f"❌ '{uploaded_file.name}': {error}")
+                                continue
+
+                            # Save to database
+                            st.session_state.storage.add_file_data(uploaded_file.name, records)
+
+                            # Update success status
+                            total_records += len(records)
+                            st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+
+                            # Show sample data
+                            if records:
+                                st.markdown("##### নমুনা ডেটা:")
+                                sample_df = pd.DataFrame([records[0]])
+                                st.dataframe(sample_df, use_container_width=True)
+
+                            # Mark as processed
+                            st.session_state.processed_files.add(uploaded_file.name)
+
+                except Exception as e:
+                    st.error(f"❌ ফাইল আপলোডে সমস্যা: {str(e)}")
+                    logger.error(f"Error processing {uploaded_file.name}: {str(e)}")
+
+            if total_records > 0:
+                st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
+
+        # Clear processed files when no files are selected
+        if not uploaded_files:
+            st.session_state.processed_files = set()
+
+    except Exception as e:
+        st.error(f"❌ অপ্রত্যাশিত সমস্যা: {str(e)}")
+        logger.error(f"Unexpected error in file upload: {str(e)}")
+
 def edit_record(record_id, record_data):
     """Edit record dialog"""
     st.markdown("<div class='edit-form'>", unsafe_allow_html=True)
@@ -159,92 +254,6 @@ def main():
         show_search_page()
     else:
         show_all_data_page()
-
-def show_upload_page():
-    st.header("📤 ফাইল আপলোড")
-
-    # Add description
-    st.markdown("""
-    #### ব্যবহার নির্দেশিকা:
-    1. একাধিক টেক্সট ফাইল একসাথে আপলোড করতে পারবেন
-    2. প্রতিটি ফাইল স্বয়ংক্রিয়ভাবে প্রক্রিয়াকরণ করা হবে
-    3. ডেটা সুরক্ষিতভাবে সংরক্ষণ করা হবে
-    """)
-
-    # Initialize upload states if not exists
-    if 'processed_files' not in st.session_state:
-        st.session_state.processed_files = set()
-
-    try:
-        uploaded_files = st.file_uploader(
-            "টেক্সট ফাইল নির্বাচন করুন",
-            type=['txt'],
-            accept_multiple_files=True,
-            key="file_uploader"
-        )
-
-        if uploaded_files:
-            total_records = 0
-
-            # Process each file
-            for uploaded_file in uploaded_files:
-                # Skip if already processed in this session
-                if uploaded_file.name in st.session_state.processed_files:
-                    continue
-
-                try:
-                    with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
-                        # Create a container for this file's status
-                        file_container = st.container()
-
-                        with file_container:
-                            try:
-                                # Read file content with explicit encoding
-                                content = uploaded_file.getvalue().decode('utf-8-sig')
-
-                                # Process the content
-                                records = process_text_file(content)
-
-                                if not records:
-                                    st.warning(f"⚠️ '{uploaded_file.name}' থেকে কোন রেকর্ড পাওয়া যায়নি")
-                                    continue
-
-                                # Save to database
-                                st.session_state.storage.add_file_data(uploaded_file.name, records)
-
-                                # Update success status
-                                total_records += len(records)
-                                st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
-
-                                # Show sample data
-                                if records:
-                                    st.markdown("##### নমুনা ডেটা:")
-                                    sample_df = pd.DataFrame([records[0]])
-                                    st.dataframe(sample_df, use_container_width=True)
-
-                                # Mark as processed
-                                st.session_state.processed_files.add(uploaded_file.name)
-
-                            except UnicodeDecodeError:
-                                st.error(f"❌ '{uploaded_file.name}' ফাইলটি সঠিক ফরম্যাটে নেই। দয়া করে UTF-8 এনকোডিং ব্যবহার করুন।")
-                            except Exception as e:
-                                st.error(f"❌ ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}")
-                                logger.error(f"Error processing {uploaded_file.name}: {str(e)}")
-
-                except Exception as outer_e:
-                    st.error(f"❌ ফাইল আপলোডে সমস্যা: {str(outer_e)}")
-                    logger.error(f"Outer error processing {uploaded_file.name}: {str(outer_e)}")
-
-            if total_records > 0:
-                st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
-
-        # Clear processed files when no files are selected
-        if not uploaded_files:
-            st.session_state.processed_files = set()
-
-    except Exception as e:
-        st.error(f"❌ অপ্রত্যাশিত সমস্যা: {str(e)}")
-        logger.error(f"Unexpected error in file upload: {str(e)}")
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
