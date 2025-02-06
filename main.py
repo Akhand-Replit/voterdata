@@ -307,67 +307,97 @@ st.markdown("""
     }
     .stButton>button {
         width: 100%;
-        border-radius: 5px;
+        border-radius: 10px;
         height: 3em;
-        background-color: #f63366;
+        background-color: #FF4B4B;
         color: white;
+        font-weight: 500;
+        border: none;
+        margin: 0.5rem 0;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        background-color: #ff6b6b;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transform: translateY(-2px);
+    }
+    .stButton>button:active {
+        transform: translateY(0);
     }
     .stTextInput>div>div>input {
-        border-radius: 5px;
+        border-radius: 8px;
         font-family: 'SolaimanLipi', Arial, sans-serif !important;
+        border: 1px solid #e0e0e0;
     }
     h1 {
         color: #1E1E1E;
         padding-bottom: 2rem;
+        font-weight: 600;
     }
     h2 {
         color: #2E2E2E;
         padding-bottom: 1rem;
+        font-weight: 500;
     }
     .stProgress > div > div > div > div {
-        background-color: #f63366;
+        background-color: #FF4B4B;
     }
     .upload-stats {
-        padding: 1rem;
+        padding: 1.5rem;
         background-color: #f8f9fa;
-        border-radius: 5px;
+        border-radius: 10px;
         margin: 1rem 0;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
     .record-card {
         background-color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        margin-bottom: 1.5rem;
+        border: 1px solid #f0f0f0;
+    }
+    .stAlert {
         padding: 1rem;
         border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        margin-bottom: 1rem;
+        margin: 1rem 0;
+    }
+    div[data-testid="stToolbar"] {
+        display: none;
+    }
+    .stAlert > div {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+    }
+    div[data-baseweb="select"] > div {
+        border-radius: 8px;
+        background-color: white;
+    }
+    .delete-button, .edit-button {
+        width: 100%;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: none;
+        margin: 0.5rem 0;
     }
     .delete-button {
         background-color: #dc3545;
         color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        border: none;
-        cursor: pointer;
+    }
+    .delete-button:hover {
+        background-color: #c82333;
+        box-shadow: 0 4px 8px rgba(220,53,69,0.2);
     }
     .edit-button {
         background-color: #28a745;
         color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 5px;
-        border: none;
-        cursor: pointer;
     }
-    .edit-form {
-        background-color: #f8f9fa;
-        padding: 2rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
-    .confirm-delete {
-        background-color: #fff3f3;
-        padding: 1rem;
-        border-radius: 5px;
-        border: 1px solid #dc3545;
-        margin: 1rem 0;
+    .edit-button:hover {
+        background-color: #218838;
+        box-shadow: 0 4px 8px rgba(40,167,69,0.2);
     }
 </style>
 """, unsafe_allow_html=True)
