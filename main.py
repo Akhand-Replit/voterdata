@@ -303,21 +303,60 @@ def show_all_data_page():
             else:
                 st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
-def main():
-    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
+def show_home_page():
+    # Hero Section with modern design
+    st.markdown("""
+        <div style="text-align: center; padding: 3rem 0; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; margin-bottom: 2rem;">
+            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📚 বাংলা টেক্সট প্রসেসিং</h1>
+            <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 2rem;">দ্রুত, নির্ভুল এবং সহজ টেক্সট ডেটা ম্যানেজমেন্ট</p>
+            <div style="max-width: 600px; margin: 0 auto;">
+                <img src="https://img.icons8.com/fluency/240/000000/database.png" style="width: 120px; margin-bottom: 2rem;">
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Sidebar navigation with icons
-    page = st.sidebar.radio(
-        "📑 পৃষ্ঠা নির্বাচন করুন",
-        ["📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
-    )
+    # Features Section
+    st.markdown("""
+        <div style="margin: 2rem 0;">
+            <h2 style="text-align: center; margin-bottom: 2rem;">🌟 মূল বৈশিষ্ট্যসমূহ</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B;">📤 ফাইল আপলোড</h3>
+                    <p>সহজে একাধিক টেক্সট ফাইল আপলোড করুন</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B;">🔍 অনুসন্ধান</h3>
+                    <p>দ্রুত এবং সহজে তথ্য খুঁজে বের করুন</p>
+                </div>
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B;">📊 ডেটা ম্যানেজমেন্ট</h3>
+                    <p>সহজে তথ্য সংরক্ষণ এবং পরিচালনা করুন</p>
+                </div>
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-    if "📤 ফাইল আপলোড" in page:
-        show_upload_page()
-    elif "🔍 অনুসন্ধান" in page:
-        show_search_page()
-    else:
-        show_all_data_page()
+    # Call to Action Section
+    st.markdown("""
+        <div style="text-align: center; margin: 3rem 0; padding: 2rem; background: linear-gradient(135deg, #FF4B4B 0%, #ff6b6b 100%); border-radius: 20px; color: white;">
+            <h2 style="margin-bottom: 1rem;">🚀 শুরু করুন</h2>
+            <p style="margin-bottom: 2rem;">আপনার প্রথম ফাইল আপলোড করে শুরু করুন</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Quick Stats or Info (if available)
+    if hasattr(st.session_state, 'storage'):
+        files = st.session_state.storage.get_file_names()
+        if files:
+            total_files = len(files)
+            st.markdown(f"""
+                <div style="text-align: center; margin-top: 2rem;">
+                    <p style="font-size: 1.1rem; color: #6c757d;">
+                        📈 বর্তমানে {total_files}টি ফাইল প্রক্রিয়াকরণ করা হয়েছে
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
@@ -522,6 +561,24 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
+def main():
+    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
+
+    # Sidebar navigation with icons
+    page = st.sidebar.radio(
+        "📑 পৃষ্ঠা নির্বাচন করুন",
+        ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
+    )
+
+    if "🏠 হোম" in page:
+        show_home_page()
+    elif "📤 ফাইল আপলোড" in page:
+        show_upload_page()
+    elif "🔍 অনুসন্ধান" in page:
+        show_search_page()
+    else:
+        show_all_data_page()
 
 if __name__ == "__main__":
     main()
