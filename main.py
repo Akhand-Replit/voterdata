@@ -204,19 +204,15 @@ def display_record_card(record, record_id):
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
 
-    # Create two columns for better layout
-    col1, col2 = st.columns([1, 3])
+    # Data management section with full width
+    st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 2rem;">
+            <h4 style="margin-bottom: 0.5rem;">ডাটা ম্যানেজমেন্ট</h4>
+        </div>
+    """, unsafe_allow_html=True)
 
-    # Custom styling for the delete button container
-    with col1:
-        st.markdown("""
-            <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; text-align: center;">
-                <h4 style="margin-bottom: 0.5rem;">ডাটা ম্যানেজমেন্ট</h4>
-            </div>
-        """, unsafe_allow_html=True)
-
-        if st.button("🗑️ সব ডেটা মুছে ফেলুন", type="secondary"):
-            st.session_state.confirm_delete = True
+    if st.button("🗑️ সব ডেটা মুছে ফেলুন", type="secondary", key="delete_all"):
+        st.session_state.confirm_delete = True
 
     if st.session_state.confirm_delete:
         st.warning("""
@@ -240,33 +236,32 @@ def show_all_data_page():
                 st.session_state.confirm_delete = False
                 st.rerun()
 
-    # File selection in the main content area
-    with col2:
-        files = st.session_state.storage.get_file_names()
+    # File selection with full width
+    files = st.session_state.storage.get_file_names()
 
-        if not files:
-            st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-            return
+    if not files:
+        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+        return
 
-        selected_file = st.selectbox(
-            "📁 ফাইল নির্বাচন করুন",
-            files,
-            index=0 if files else None
-        )
+    selected_file = st.selectbox(
+        "📁 ফাইল নির্বাচন করুন",
+        files,
+        index=0 if files else None
+    )
 
-        if selected_file:
-            with st.spinner('তথ্য লোড হচ্ছে...'):
-                records = st.session_state.storage.get_file_data(selected_file)
-                if records:
-                    # Create a clean DataFrame display
-                    df = pd.DataFrame(records)
-                    st.dataframe(
-                        df,
-                        use_container_width=True,
-                        hide_index=True
-                    )
-                else:
-                    st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
+    if selected_file:
+        with st.spinner('তথ্য লোড হচ্ছে...'):
+            records = st.session_state.storage.get_file_data(selected_file)
+            if records:
+                # Create a clean DataFrame display with full width
+                df = pd.DataFrame(records)
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
