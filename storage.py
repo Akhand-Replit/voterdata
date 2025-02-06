@@ -149,3 +149,27 @@ class Storage:
             self.session.rollback()
             logger.error(f"Error deleting records for file {filename}: {str(e)}")
             raise Exception(f"Failed to delete records for file {filename}: {str(e)}")
+
+    def get_file_data_with_batch(self, filename, batch_name):
+        """Get data for a specific file with batch information."""
+        return self.session.query(Record).filter_by(
+            file_name=f"{batch_name}/{filename}"
+        ).all()
+
+    def add_file_data_with_batch(self, filename, batch_name, records):
+        """Add or update file data with batch information."""
+        full_filename = f"{batch_name}/{filename}"
+        for record in records:
+            db_record = Record(
+                file_name=full_filename,
+                ক্রমিক_নং=record.get('ক্রমিক_নং', ''),
+                নাম=record.get('নাম', ''),
+                ভোটার_নং=record.get('ভোটার_নং', ''),
+                পিতার_নাম=record.get('পিতার_নাম', ''),
+                মাতার_নাম=record.get('মাতার_নাম', ''),
+                পেশা=record.get('পেশা', ''),
+                জন্ম_তারিখ=record.get('জন্ম_তারিখ', ''),
+                ঠিকানা=record.get('ঠিকানা', '')
+            )
+            self.session.add(db_record)
+        self.session.commit()

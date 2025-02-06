@@ -72,6 +72,13 @@ def show_upload_page():
     - ফাইল এনকোডিং: UTF-8
     """)
 
+    # Add batch name input
+    batch_name = st.text_input(
+        "📁 ব্যাচ/ফোল্ডারের নাম",
+        help="একাধিক ফাইল একই ফোল্ডারে সংরক্ষণ করতে একটি নাম দিন",
+        placeholder="উদাহরণ: ময়মনসিংহ_২০২৪"
+    )
+
     # Initialize upload states if not exists
     if 'processed_files' not in st.session_state:
         st.session_state.processed_files = set()
@@ -85,10 +92,15 @@ def show_upload_page():
             help="একাধিক ফাইল নির্বাচন করতে Ctrl/Cmd চেপে ক্লিক করুন"
         )
 
-        if uploaded_files:
+        if uploaded_files and not batch_name:
+            st.warning("⚠️ অনুগ্রহ করে প্রথমে একটি ব্যাচ/ফোল্ডারের নাম দিন")
+            return
+
+        if uploaded_files and batch_name:
             total_records = 0
             for uploaded_file in uploaded_files:
-                if uploaded_file.name in st.session_state.processed_files:
+                batch_file_key = f"{batch_name}/{uploaded_file.name}"
+                if batch_file_key in st.session_state.processed_files:
                     continue
 
                 with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
@@ -99,12 +111,12 @@ def show_upload_page():
                         continue
 
                     try:
-                        # Save to database
-                        st.session_state.storage.add_file_data(uploaded_file.name, records)
+                        # Save to database with batch information
+                        st.session_state.storage.add_file_data_with_batch(uploaded_file.name, batch_name, records)
 
                         # Update success status
                         total_records += len(records)
-                        st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+                        st.success(f"✅ '{uploaded_file.name}' সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
 
                         # Show sample data
                         st.markdown("##### নমুনা ডেটা:")
@@ -112,13 +124,13 @@ def show_upload_page():
                         st.dataframe(sample_df, use_container_width=True)
 
                         # Mark as processed
-                        st.session_state.processed_files.add(uploaded_file.name)
+                        st.session_state.processed_files.add(batch_file_key)
                     except Exception as e:
                         logger.error(f"Error saving file {uploaded_file.name}: {str(e)}")
                         st.error(f"❌ ডেটা সংরক্ষণে সমস্যা: {str(e)}")
 
             if total_records > 0:
-                st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
+                st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে")
 
     except Exception as e:
         st.error(f"❌ অপ্রত্যাশিত সমস্যা: {str(e)}")
