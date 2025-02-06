@@ -45,6 +45,10 @@ def show_upload_page():
     1. একাধিক টেক্সট ফাইল একসাথে আপলোড করতে পারবেন
     2. প্রতিটি ফাইল স্বয়ংক্রিয়ভাবে প্রক্রিয়াকরণ করা হবে
     3. ডেটা সুরক্ষিতভাবে সংরক্ষণ করা হবে
+
+    **সীমাবদ্ধতা:**
+    - সর্বোচ্চ ফাইল সাইজ: 200MB
+    - শুধুমাত্র .txt ফাইল সমর্থিত
     """)
 
     # Initialize upload states if not exists
@@ -56,7 +60,8 @@ def show_upload_page():
             "টেক্সট ফাইল নির্বাচন করুন",
             type=['txt'],
             accept_multiple_files=True,
-            key="file_uploader"
+            key="file_uploader",
+            help="একাধিক ফাইল নির্বাচন করতে Ctrl/Cmd চেপে ক্লিক করুন"
         )
 
         if uploaded_files:
@@ -64,6 +69,11 @@ def show_upload_page():
 
             # Process each file
             for uploaded_file in uploaded_files:
+                # Check file size
+                if uploaded_file.size > 200 * 1024 * 1024:  # 200MB
+                    st.error(f"❌ '{uploaded_file.name}' ফাইলটি খুব বড় (সর্বোচ্চ 200MB অনুমোদিত)")
+                    continue
+
                 # Skip if already processed in this session
                 if uploaded_file.name in st.session_state.processed_files:
                     continue
@@ -74,32 +84,46 @@ def show_upload_page():
                         file_container = st.container()
 
                         with file_container:
-                            # Process the file
-                            records, error = process_uploaded_file(uploaded_file)
+                            try:
+                                # First check if file is empty
+                                if uploaded_file.size == 0:
+                                    st.error(f"❌ '{uploaded_file.name}' ফাইলটি খালি")
+                                    continue
 
-                            if error:
-                                st.error(f"❌ '{uploaded_file.name}': {error}")
-                                continue
+                                # Process the file
+                                records, error = process_uploaded_file(uploaded_file)
 
-                            # Save to database
-                            st.session_state.storage.add_file_data(uploaded_file.name, records)
+                                if error:
+                                    st.error(f"❌ '{uploaded_file.name}': {error}")
+                                    continue
 
-                            # Update success status
-                            total_records += len(records)
-                            st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+                                # Save to database
+                                st.session_state.storage.add_file_data(uploaded_file.name, records)
 
-                            # Show sample data
-                            if records:
-                                st.markdown("##### নমুনা ডেটা:")
-                                sample_df = pd.DataFrame([records[0]])
-                                st.dataframe(sample_df, use_container_width=True)
+                                # Update success status
+                                if records:
+                                    total_records += len(records)
+                                    st.success(f"✅ '{uploaded_file.name}' সফলভাবে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
 
-                            # Mark as processed
-                            st.session_state.processed_files.add(uploaded_file.name)
+                                    # Show sample data
+                                    st.markdown("##### নমুনা ডেটা:")
+                                    sample_df = pd.DataFrame([records[0]])
+                                    st.dataframe(sample_df, use_container_width=True)
+
+                                    # Mark as processed
+                                    st.session_state.processed_files.add(uploaded_file.name)
+                                else:
+                                    st.warning(f"⚠️ '{uploaded_file.name}' ফাইলে কোন ডেটা পাওয়া যায়নি")
+
+                            except UnicodeDecodeError:
+                                st.error(f"❌ '{uploaded_file.name}' ফাইলটি সঠিক ফরম্যাটে নেই। দয়া করে UTF-8 এনকোডিং ব্যবহার করুন")
+                            except Exception as e:
+                                st.error(f"❌ '{uploaded_file.name}' প্রক্রিয়াকরণে সমস্যা: {str(e)}")
+                                logger.error(f"Error processing {uploaded_file.name}: {str(e)}")
 
                 except Exception as e:
                     st.error(f"❌ ফাইল আপলোডে সমস্যা: {str(e)}")
-                    logger.error(f"Error processing {uploaded_file.name}: {str(e)}")
+                    logger.error(f"Error uploading {uploaded_file.name}: {str(e)}")
 
             if total_records > 0:
                 st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে আপলোড হয়েছে")
