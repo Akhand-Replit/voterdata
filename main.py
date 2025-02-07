@@ -812,46 +812,9 @@ def show_search_page():
                 if results:
                     st.success(f"📊 মোট {len(results)}টি ফলাফল পাওয়া গেছে")
 
-                    # Show results with relation status
+                    # Show results in card format
                     for record in results:
-                        st.markdown(
-                            f"""
-                            <div style="padding: 1rem; background-color: white; border-radius: 10px; margin: 1rem 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                <h3>{record['নাম']}</h3>
-                                <p>ভোটার নং: {record['ভোটার_নং']}</p>
-                                <p>পিতার নাম: {record['পিতার_নাম']}</p>
-                                <p>ঠিকানা: {record['ঠিকানা']}</p>
-                                <p>বর্তমান অবস্থা: {'👥 বন্ধু' if record['relation_type'] == RelationType.FRIEND.value else '⚔️ শত্রু' if record['relation_type'] == RelationType.ENEMY.value else '🔄 অজানা'}</p>
-                            </div>
-                            """,
-                            unsafe_allow_html=True
-                        )
-
-                        # Action buttons
-                        col1, col2, col3 = st.columns([1, 1, 1])
-                        current_relation = record.get('relation_type', RelationType.NONE.value)
-
-                        with col1:
-                            if current_relation != RelationType.FRIEND.value:
-                                if st.button(f"👥 বন্ধু হিসেবে যোগ করুন", key=f"friend_{record['id']}"):
-                                    if st.session_state.storage.mark_relation(record['id'], RelationType.FRIEND):
-                                        st.success("✅ বন্ধু হিসেবে যোগ করা হয়েছে")
-                                        st.rerun()
-
-                        with col2:
-                            if current_relation != RelationType.ENEMY.value:
-                                if st.button(f"⚔️ শত্রু হিসেবে যোগ করুন", key=f"enemy_{record['id']}"):
-                                    if st.session_state.storage.mark_relation(record['id'], RelationType.ENEMY):
-                                        st.success("✅ শত্রু হিসেবে যোগ করা হয়েছে")
-                                        st.rerun()
-
-                        with col3:
-                            if current_relation != RelationType.NONE.value:
-                                if st.button(f"❌ তালিকা থেকে বাদ দিন", key=f"remove_{record['id']}"):
-                                    if st.session_state.storage.mark_relation(record['id'], RelationType.NONE):
-                                        st.success("✅ তালিকা থেকে বাদ দেওয়া হয়েছে")
-                                        st.rerun()
-
+                        display_record_card(record, record['id'])
                 else:
                     st.info("❌ কোন ফলাফল পাওয়া যায়নি")
             except Exception as e:
