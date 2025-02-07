@@ -213,24 +213,61 @@ def display_record_card(record, record_id):
     try:
         relation_type = record.get('relation_type', RelationType.NONE.value)
 
-        # Create the card display
+        # Create the card display with modern design
         st.markdown(f"""
-        <div class='record-card'>
-            <h4>🪪 {record['নাম']}</h4>
-            <p><strong>ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
-            <p><strong>ভোটার নং:</strong> {record['ভোটার_নং']}</p>
-            <p><strong>পিতার নাম:</strong> {record['পিতার_নাম']}</p>
-            <p><strong>মাতার নাম:</strong> {record['মাতার_নাম']}</p>
-            <p><strong>পেশা:</strong> {record['পেশা']}</p>
-            <p><strong>জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
-            <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
-            <div style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
-                <p style="color: #666; font-size: 0.9em;">📂 ফাইল অবস্থান: {record['file_name']}</p>
-                <p style="color: #666; font-size: 0.9em;">🔗 বর্তমান সম্পর্ক: {
-                    "বন্ধু" if relation_type == RelationType.FRIEND.value 
-                    else "শত্রু" if relation_type == RelationType.ENEMY.value 
-                    else "অজানা"
-                }</p>
+        <div style="
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            transition: all 0.2s ease;
+            border: 1px solid #f0f0f0;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4 style="margin: 0; color: #1f1f1f; font-size: 1.25rem;">🪪 {record['নাম']}</h4>
+                <span style="
+                    background: {'#e6f4ea' if relation_type == RelationType.FRIEND.value else '#fce8e8' if relation_type == RelationType.ENEMY.value else '#f8f9fa'};
+                    color: {'#137333' if relation_type == RelationType.FRIEND.value else '#c5221f' if relation_type == RelationType.ENEMY.value else '#5f6368'};
+                    padding: 0.25rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.875rem;
+                ">
+                    {
+                        "👥 বন্ধু" if relation_type == RelationType.FRIEND.value 
+                        else "⚔️ শত্রু" if relation_type == RelationType.ENEMY.value 
+                        else "🔄 অজানা"
+                    }
+                </span>
+            </div>
+
+            <div style="
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+                margin-bottom: 1rem;
+            ">
+                <div style="color: #444;">
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ভোটার নং:</strong> {record['ভোটার_নং']}</p>
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">পিতার নাম:</strong> {record['পিতার_নাম']}</p>
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">মাতার নাম:</strong> {record['মাতার_নাম']}</p>
+                </div>
+                <div style="color: #444;">
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">পেশা:</strong> {record['পেশা']}</p>
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
+                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ঠিকানা:</strong> {record['ঠিকানা']}</p>
+                </div>
+            </div>
+
+            <div style="
+                border-top: 1px solid #f0f0f0;
+                margin-top: 1rem;
+                padding-top: 1rem;
+                font-size: 0.875rem;
+                color: #666;
+            ">
+                <p style="margin: 0;">📂 ফাইল অবস্থান: {record['file_name']}</p>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -239,11 +276,11 @@ def display_record_card(record, record_id):
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
+            if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}", type="primary"):
                 st.session_state.editing = record_id
 
         with col2:
-            if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
+            if st.button("🗑️ মুছুন", key=f"delete_{record_id}", type="secondary"):
                 if st.session_state.storage.delete_record(record_id):
                     st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
                     st.rerun()
@@ -635,8 +672,7 @@ def show_home_page():
                     <h3 style="color: #FF4B4B; font-size: 2rem;">📊</h3>
                     <h4>মোট রেকর্ড</h4>
                     <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>
-                </div>
-                """,
+                </div>                """,
                 unsafe_allow_html=True
             )
 
