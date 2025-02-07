@@ -213,88 +213,65 @@ def display_record_card(record, record_id):
     try:
         relation_type = record.get('relation_type', RelationType.NONE.value)
 
-        # Create the card display with modern design
+        # Render entire card in a single markdown call
         st.markdown(f"""
-        <div style="
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            padding: 1.5rem;
-            margin: 1.5rem 0;
-            border: 1px solid #f0f0f0;
-            transition: transform 0.2s ease;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <div>
-                    <h3 style="margin: 0; color: #1f1f1f; font-size: 1.5rem; font-weight: 600;">
-                        {record['নাম']}
-                    </h3>
-                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
-                        ভোটার নং: {record['ভোটার_নং']}
-                    </p>
-                </div>
-                <span style="
-                    background: {'#e6f4ea' if relation_type == RelationType.FRIEND.value else '#fce8e8' if relation_type == RelationType.ENEMY.value else '#f8f9fa'};
-                    color: {'#137333' if relation_type == RelationType.FRIEND.value else '#c5221f' if relation_type == RelationType.ENEMY.value else '#5f6368'};
-                    padding: 0.5rem 1rem;
-                    border-radius: 50px;
-                    font-size: 0.875rem;
-                    font-weight: 500;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                ">
-                    {
-                        "👥 বন্ধু" if relation_type == RelationType.FRIEND.value 
-                        else "⚔️ শত্রু" if relation_type == RelationType.ENEMY.value 
-                        else "🔄 অজানা"
-                    }
-                </span>
-            </div>
-
-            <div style="
-                display: grid;
-                grid-template-columns: repeat(2, 1fr);
-                gap: 1.5rem;
-                margin: 1.5rem 0;
-                padding: 1rem;
-                background: #f8f9fa;
-                border-radius: 12px;
-            ">
-                <div>
-                    <div style="margin-bottom: 1rem;">
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ক্রমিক নং</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ক্রমিক_নং']}</p>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পিতার নাম</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পিতার_নাম']}</p>
-                    </div>
-                    <div style="margin-bottom: 1rem;">
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">মাতার নাম</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['মাতার_নাম']}</p>
-                    </div>
+            <div style="background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); 
+                        padding: 1.5rem; margin: 1.5rem 0; border: 1px solid #f0f0f0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                     <div>
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">জন্ম তারিখ</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['জন্ম_তারিখ']}</p>
+                        <h3 style="margin: 0; color: #1f1f1f; font-size: 1.5rem; font-weight: 600;">
+                            {record['নাম']}
+                        </h3>
+                        <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                            ভোটার নং: {record['ভোটার_নং']}
+                        </p>
+                    </div>
+                    <div style="
+                        background: {'#e6f4ea' if relation_type == RelationType.FRIEND.value else '#fce8e8' if relation_type == RelationType.ENEMY.value else '#f8f9fa'};
+                        color: {'#137333' if relation_type == RelationType.FRIEND.value else '#c5221f' if relation_type == RelationType.ENEMY.value else '#5f6368'};
+                        padding: 0.5rem 1rem;
+                        border-radius: 50px;
+                        font-size: 0.875rem;
+                        font-weight: 500;
+                    ">
+                        {"👥 বন্ধু" if relation_type == RelationType.FRIEND.value else "⚔️ শত্রু" if relation_type == RelationType.ENEMY.value else "🔄 অজানা"}
                     </div>
                 </div>
-                <div>
-                    <div style="margin-bottom: 1rem;">
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পেশা</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পেশা']}</p>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 12px;">
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ক্রমিক নং</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ক্রমিক_নং']}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পিতার নাম</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পিতার_নাম']}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">মাতার নাম</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['মাতার_নাম']}</p>
+                        </div>
+                        <div>
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">জন্ম তারিখ</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['জন্ম_তারিখ']}</p>
+                        </div>
                     </div>
-                    <div style="margin-bottom: 1rem;">
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ঠিকানা</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ঠিকানা']}</p>
-                    </div>
-                    <div>
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ফাইল</p>
-                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">📂 {record['file_name']}</p>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 12px;">
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পেশা</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পেশা']}</p>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ঠিকানা</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ঠিকানা']}</p>
+                        </div>
+                        <div>
+                            <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ফাইল</p>
+                            <p style="margin: 0; color: #1f1f1f; font-weight: 500;">📂 {record['file_name']}</p>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         """, unsafe_allow_html=True)
 
         # Action buttons
@@ -314,7 +291,7 @@ def display_record_card(record, record_id):
 
         with col3:
             if relation_type != RelationType.FRIEND.value:
-                if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}"):
+                if st.button("👥 বন্ধু হিসেবে যোগ করুন", key=f"friend_{record_id}"):
                     if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
                         st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
                         st.rerun()
@@ -323,7 +300,7 @@ def display_record_card(record, record_id):
 
         with col4:
             if relation_type != RelationType.ENEMY.value:
-                if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}"):
+                if st.button("⚔️ শত্রু হিসেবে যোগ করুন", key=f"enemy_{record_id}"):
                     if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
                         st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
                         st.rerun()
@@ -608,7 +585,7 @@ def show_relations_page():
 
 # Update the page routing to include the relations page
 def main():
-    st.title("📚 বাংলা ট`েক্সট প্রসেসিং অ্যাপ্লিকেশন")
+    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
     if page =="🏠 হোম":
         show_home_page()
@@ -765,66 +742,44 @@ def show_home_page():
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
 
-    # Create two columns for search fields
-    col1, col2 = st.columns(2)
+    # Search form
+    with st.form(key='search_form'):
+        search_input = st.text_input(
+            "নাম, ভোটার নং, বা অন্য তথ্য দিয়ে অনুসন্ধান করুন",
+            placeholder="অনুসন্ধানের জন্য টেক্সট লিখুন..."
+        )
+        col1, col2 = st.columns(2)
 
-    search_params = {}
+        with col1:
+            search_in = st.selectbox(
+                "অনুসন্ধানের ক্ষেত্র",
+                ["সব", "নাম", "ভোটার_নং", "পিতার_নাম", "মাতার_নাম", "ঠিকানা"]
+            )
 
-    with col1:
-        si_number = st.text_input("🔢 ক্রমিক নং", key="search_si")
-        if si_number:
-            search_params['ক্রমিক_নং'] = si_number
+        with col2:
+            selected_folder = st.selectbox(
+                "ফোল্ডার নির্বাচন করুন",
+                ["সব"] + list(set(f.split('/')[0] for f in st.session_state.storage.get_file_names() if '/' in f))
+            )
 
-        name = st.text_input("👤 নাম", key="search_name")
-        if name:
-            search_params['নাম'] = name
+        submitted = st.form_submit_button("🔍 অনুসন্ধান", type="primary", use_container_width=True)
 
-        father_name = st.text_input("👨 পিতার নাম", key="search_father")
-        if father_name:
-            search_params['পিতার_নাম'] = father_name
-
-        mother_name = st.text_input("👩 মাতার নাম", key="search_mother")
-        if mother_name:
-            search_params['মাতার_নাম'] = mother_name
-
-    with col2:
-        voter_id = st.text_input("🗳️ ভোটার নং", key="search_voter")
-        if voter_id:
-            search_params['ভোটার_নং'] = voter_id
-
-        occupation = st.text_input("💼 পেশা", key="search_occupation")
-        if occupation:
-            search_params['পেশা'] = occupation
-
-        address = st.text_input("🏠 ঠিকানা", key="search_address")
-        if address:
-            search_params['ঠিকানা'] = address
-
-        dob = st.text_input("📅 জন্ম তারিখ", key="search_dob")
-        if dob:
-            search_params['জন্ম_তারিখ'] = dob
-
-    if st.button("🔍 অনুসন্ধান করুন", key="search"):
-        if not search_params:
-            st.warning("অনুসন্ধানের জন্য কমপক্ষে একটি ক্ষেত্র পূরণ করুন")
-            return
-
+    if submitted and search_input:
         with st.spinner('অনুসন্ধান চলছে...'):
-            try:
-                results = st.session_state.storage.search_records(**search_params)
+            results = st.session_state.storage.search_records(
+                search_input,
+                search_in if search_in != "সব" else None,
+                selected_folder if selected_folder != "সব" else None
+            )
 
-                if results:
-                    st.write(f"📊 মোট {len(results)} টি ফলাফল পাওয়া গেছে:")
+            if results:
+                st.success(f"মোট {len(results)}টি ফলাফল পাওয়া গেছে")
 
-                    # Show results in card format
-                    for record in results:
-                        record_id = record.pop('id')  # Remove id from display but keep for operations
-                        display_record_card(record, record_id)
-                else:
-                    st.info("❌ কোন ফলাফল পাওয়া যায়নি")
-            except Exception as e:
-                st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
-                logger.error(f"Search error: {str(e)}")
+                # Display each result in a modern card
+                for record in results:
+                    display_record_card(record, record['id'])
+            else:
+                st.info("❌ কোন ফলাফল পাওয়া যায়নি")
 
 if __name__ == "__main__":
     main()
