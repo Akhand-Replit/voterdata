@@ -671,8 +671,7 @@ def show_home_page():
                             border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                     <h3 style="color: #FF4B4B; font-size: 2rem;">📊</h3>
                     <h4>মোট রেকর্ড</h4>
-                    <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>
-                </div>                """,
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>                </div>                """,
                 unsafe_allow_html=True
             )
 
