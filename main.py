@@ -317,85 +317,135 @@ def show_all_data_page():
                     st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
 def show_home_page():
-    # Modern Hero Section with Gradient
-    st.markdown("""
-        <div style="text-align: center; padding: 3rem 0; background: linear-gradient(135deg, #FF4B4B 0%, #FF8080 100%); border-radius: 20px; margin-bottom: 2rem; color: white;">
-            <h1 style="font-size: 2.8rem; margin-bottom: 1rem; color: white;">📚 বাংলা টেক্সট প্রসেসিং</h1>
-            <p style="font-size: 1.3rem; margin-bottom: 2rem; opacity: 0.9;">দ্রুত, নির্ভুল এবং সহজ টেক্সট ডেটা ম্যানেজমেন্ট</p>
-        </div>
-    """, unsafe_allow_html=True)
+    # Container for better spacing
+    container = st.container()
 
-    # Quick Stats Section
-    if hasattr(st.session_state, 'storage'):
-        files = st.session_state.storage.get_file_names()
-        folders = set(file.split('/')[0] for file in files if '/' in file)
+    with container:
+        # Hero Section with Gradient
+        st.markdown(
+            """
+            <div style="text-align: center; padding: 2rem; background: linear-gradient(135deg, #FF4B4B 0%, #FF8080 100%); 
+                        border-radius: 20px; margin-bottom: 2rem; color: white;">
+                <h1 style="font-size: 2.5rem; margin-bottom: 1rem; color: white;">
+                    📚 বাংলা টেক্সট প্রসেসিং
+                </h1>
+                <p style="font-size: 1.2rem; opacity: 0.9;">
+                    দ্রুত, নির্ভুল এবং সহজ টেক্সট ডেটা ম্যানেজমেন্ট
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-        # Create three columns for stats
+        # Stats Section
+        if hasattr(st.session_state, 'storage'):
+            files = st.session_state.storage.get_file_names()
+            folders = set(file.split('/')[0] for file in files if '/' in file)
+            total_records = len(st.session_state.storage.get_all_records())
+
+            # Create three columns for stats
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+                st.markdown(
+                    f"""
+                    <div style="text-align: center; padding: 1.5rem; background: white; 
+                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h3 style="color: #FF4B4B; font-size: 2rem;">📁</h3>
+                        <h4>মোট ফোল্ডার</h4>
+                        <p style="font-size: 1.5rem; color: #FF4B4B;">{len(folders)}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with col2:
+                st.markdown(
+                    f"""
+                    <div style="text-align: center; padding: 1.5rem; background: white; 
+                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h3 style="color: #FF4B4B; font-size: 2rem;">📄</h3>
+                        <h4>মোট ফাইল</h4>
+                        <p style="font-size: 1.5rem; color: #FF4B4B;">{len(files)}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+            with col3:
+                st.markdown(
+                    f"""
+                    <div style="text-align: center; padding: 1.5rem; background: white; 
+                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <h3 style="color: #FF4B4B; font-size: 2rem;">📊</h3>
+                        <h4>মোট রেকর্ড</h4>
+                        <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+        # Features Section
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">
+                🌟 মূল বৈশিষ্ট্যসমূহ
+            </h2>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Feature Cards in columns
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.markdown("""
-                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📁</h3>
-                    <h4 style="margin-bottom: 0.5rem;">মোট ফোল্ডার</h4>
-                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
+            st.markdown(
+                """
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                    <h3 style="color: #FF4B4B; margin-bottom: 1rem;">
+                        📤 ফাইল আপলোড
+                    </h3>
+                    <p style="color: #666;">
+                        সহজে একাধিক টেক্সট ফাইল আপলোড করুন এবং ফোল্ডার অনুযায়ী সাজান
+                    </p>
                 </div>
-            """.format(len(folders)), unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
 
         with col2:
-            st.markdown("""
-                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📄</h3>
-                    <h4 style="margin-bottom: 0.5rem;">মোট ফাইল</h4>
-                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
+            st.markdown(
+                """
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                    <h3 style="color: #FF4B4B; margin-bottom: 1rem;">
+                        🔍 অনুসন্ধান
+                    </h3>
+                    <p style="color: #666;">
+                        দ্রুত এবং সহজে প্রয়োজনীয় তথ্য খুঁজে বের করুন
+                    </p>
                 </div>
-            """.format(len(files)), unsafe_allow_html=True)
+                """,
+                unsafe_allow_html=True
+            )
 
         with col3:
-            total_records = len(st.session_state.storage.get_all_records())
-            st.markdown("""
-                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📊</h3>
-                    <h4 style="margin-bottom: 0.5rem;">মোট রেকর্ড</h4>
-                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
-                </div>
-            """.format(total_records), unsafe_allow_html=True)
-
-    # Features Section with Modern Cards
-    st.markdown("""
-        <div style="margin: 3rem 0;">
-            <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">🌟 মূল বৈশিষ্ট্যসমূহ</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
-                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 2rem;">📤</span> ফাইল আপলোড
+            st.markdown(
+                """
+                <div style="background: white; padding: 1.5rem; border-radius: 15px; 
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1); height: 100%;">
+                    <h3 style="color: #FF4B4B; margin-bottom: 1rem;">
+                        📊 ডেটা ব্যবস্থাপনা
                     </h3>
-                    <p style="color: #666; margin-top: 1rem;">সহজে একাধিক টেক্সট ফাইল আপলোড করুন এবং ফোল্ডার অনুযায়ী সাজান</p>
+                    <p style="color: #666;">
+                        সকল তথ্য সুশৃঙ্খলভাবে সংরক্ষণ এবং পরিচালনা করুন
+                    </p>
                 </div>
-
-                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
-                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 2rem;">🔍</span> অনুসন্ধান
-                    </h3>
-                    <p style="color: #666; margin-top: 1rem;">দ্রুত এবং সহজে প্রয়োজনীয় তথ্য খুঁজে বের করুন</p>
-                </div>
-
-                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
-                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
-                        <span style="font-size: 2rem;">📊</span> ডেটা ব্যবস্থাপনা
-                    </h3>
-                    <p style="color: #666; margin-top: 1rem;">সকল তথ্য সুশৃঙ্খলভাবে সংরক্ষণ এবং পরিচালনা করুন</p>
-                </div>
-            </div>
-        </div>
-
-        <style>
-        div[style*="box-shadow"]:hover {
-            transform: translateY(-5px);
-        }
-        </style>
-    """, unsafe_allow_html=True)
-
+                """,
+                unsafe_allow_html=True
+            )
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
