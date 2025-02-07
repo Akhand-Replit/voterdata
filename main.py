@@ -742,44 +742,70 @@ def show_home_page():
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
 
-    # Search form
-    with st.form(key='search_form'):
-        search_input = st.text_input(
-            "নাম, ভোটার নং, বা অন্য তথ্য দিয়ে অনুসন্ধান করুন",
-            placeholder="অনুসন্ধানের জন্য টেক্সট লিখুন..."
-        )
-        col1, col2 = st.columns(2)
+    # Create two columns for search fields
+    col1, col2 = st.columns(2)
 
-        with col1:
-            search_in = st.selectbox(
-                "অনুসন্ধানের ক্ষেত্র",
-                ["সব", "নাম", "ভোটার_নং", "পিতার_নাম", "মাতার_নাম", "ঠিকানা"]
-            )
+    search_params = {}
 
-        with col2:
-            selected_folder = st.selectbox(
-                "ফোল্ডার নির্বাচন করুন",
-                ["সব"] + list(set(f.split('/')[0] for f in st.session_state.storage.get_file_names() if '/' in f))
-            )
+    with col1:
+        si_number = st.text_input("🔢 ক্রমিক নং", key="search_si")
+        if si_number:
+            search_params['ক্রমিক_নং'] = si_number
 
-        submitted = st.form_submit_button("🔍 অনুসন্ধান", type="primary", use_container_width=True)
+        name = st.text_input("👤 নাম", key="search_name")
+        if name:
+            search_params['নাম'] = name
 
-    if submitted and search_input:
+        father_name = st.text_input("👨 পিতার নাম", key="search_father")
+        if father_name:
+            search_params['পিতার_নাম'] = father_name
+
+        mother_name = st.text_input("👩 মাতার নাম", key="search_mother")
+        if mother_name:
+            search_params['মাতার_নাম'] = mother_name
+
+    with col2:
+        voter_id = st.text_input("🗳️ ভোটার নং", key="search_voter")
+        if voter_id:
+            search_params['ভোটার_নং'] = voter_id
+
+        occupation = st.text_input("💼 পেশা", key="search_occupation")
+        if occupation:
+            search_params['পেশা'] = occupation
+
+        address = st.text_input("🏠 ঠিকানা", key="search_address")
+        if address:
+            search_params['ঠিকানা'] = address
+
+        dob = st.text_input("📅 জন্ম তারিখ", key="search_dob")
+        if dob:
+            search_params['জন্ম_তারিখ'] = dob
+
+    if st.button("🔍 অনুসন্ধান করুন", key="search"):
+        if not search_params:
+            st.warning("অনুসন্ধানের জন্য কমপক্ষে একটি ক্ষেত্র পূরণ করুন")
+            return
+
         with st.spinner('অনুসন্ধান চলছে...'):
-            results = st.session_state.storage.search_records(
-                search_input,
-                search_in if search_in != "সব" else None,
-                selected_folder if selected_folder != "সব" else None
-            )
+            try:
+                results = st.session_state.storage.search_records(
+                    search_text=None,
+                    field=None,
+                    folder=None,
+                    **search_params
+                )
 
-            if results:
-                st.success(f"মোট {len(results)}টি ফলাফল পাওয়া গেছে")
+                if results:
+                    st.success(f"📊 মোট {len(results)}টি ফলাফল পাওয়া গেছে")
 
-                # Display each result in a modern card
-                for record in results:
-                    display_record_card(record, record['id'])
-            else:
-                st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+                    # Show results in card format
+                    for record in results:
+                        display_record_card(record, record['id'])
+                else:
+                    st.info("❌ কোন ফলাফল পাওয়া যায়নি")
+            except Exception as e:
+                st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
+                logger.error(f"Search error: {str(e)}")
 
 if __name__ == "__main__":
     main()
