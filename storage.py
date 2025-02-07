@@ -1,13 +1,19 @@
 import logging
-from sqlalchemy import create_engine, Column, String, Integer
+from sqlalchemy import create_engine, Column, String, Integer, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+import enum
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 Base = declarative_base()
+
+class RelationType(enum.Enum):
+    NONE = "none"
+    FRIEND = "friend"
+    ENEMY = "enemy"
 
 class Record(Base):
     __tablename__ = 'records'
@@ -22,6 +28,7 @@ class Record(Base):
     পেশা = Column(String)
     জন্ম_তারিখ = Column(String)
     ঠিকানা = Column(String)
+    relation_type = Column(Enum(RelationType), default=RelationType.NONE)
 
 class Storage:
     def __init__(self):
@@ -132,7 +139,8 @@ class Storage:
             'পেশা': record.পেশা,
             'জন্ম_তারিখ': record.জন্ম_তারিখ,
             'ঠিকানা': record.ঠিকানা,
-            'file_name': record.file_name
+            'file_name': record.file_name,
+            'relation_type': record.relation_type.value if record.relation_type else 'none'
         }
         if include_id:
             result['id'] = record.id
@@ -173,3 +181,28 @@ class Storage:
             )
             self.session.add(db_record)
         self.session.commit()
+
+    def mark_relation(self, record_id: int, relation_type: RelationType) -> bool:
+        """Mark a record as friend or enemy"""
+        try:
+            record = self.session.query(Record).filter_by(id=record_id).first()
+            if record:
+                record.relation_type = relation_type
+                self.session.commit()
+                logger.info(f"Successfully marked record {record_id} as {relation_type.value}")
+                return True
+            return False
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error marking record {record_id}: {str(e)}")
+            return False
+
+    def get_relations_by_type(self, relation_type: RelationType, folder: str = None):
+        """Get all records marked as friends or enemies, optionally filtered by folder"""
+        query = self.session.query(Record).filter_by(relation_type=relation_type)
+
+        if folder:
+            query = query.filter(Record.file_name.like(f"{folder}/%"))
+
+        records = query.all()
+        return [self._record_to_dict(record, include_id=True) for record in records]

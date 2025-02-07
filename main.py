@@ -1,7 +1,85 @@
 import streamlit as st
 import pandas as pd
-from data_processor import process_text_file
-from storage import Storage
+from enum import Enum
+
+# Placeholder for data_processor and Storage - Replace with your actual implementations
+def process_text_file(content):
+    # Replace with your actual text processing logic
+    return [{'ক্রমিক_নং': '1', 'নাম': 'নাম ১', 'ভোটার_নং': 'ভোটার নং ১', 'পিতার_নাম': 'পিতা ১', 'মাতার_নাম': 'মা ১', 'পেশা': 'পেশা ১', 'জন্ম_তারিখ': 'জন্মতারিখ ১', 'ঠিকানা': 'ঠিকানা ১', 'file_name': 'file1.txt'}]
+
+
+class RelationType(Enum):
+    FRIEND = 1
+    ENEMY = 2
+
+
+class Storage:
+    def __init__(self):
+        self.data = {}
+        self.next_id = 1
+
+    def add_file_data_with_batch(self, file_name, batch_name, records):
+        for record in records:
+            record['file_name'] = file_name
+            record['id'] = self.next_id
+            self.next_id += 1
+            self.data[self.next_id -1] = record
+
+    def update_record(self, record_id, edited_data):
+        if record_id in self.data:
+            self.data[record_id -1].update(edited_data)
+            return True
+        return False
+
+    def delete_record(self, record_id):
+        if record_id in self.data:
+            del self.data[record_id -1]
+            return True
+        return False
+
+    def delete_all_records(self):
+        self.data = {}
+        self.next_id = 1
+
+    def get_file_names(self):
+        files = set()
+        for record in self.data.values():
+            files.add(record['file_name'])
+        return list(files)
+
+    def get_file_data(self, file_name):
+        return [record for record in self.data.values() if record['file_name'] == file_name]
+
+    def get_all_records(self):
+        return list(self.data.values())
+
+    def search_records(self, **kwargs):
+        results = []
+        for record in self.data.values():
+            match = True
+            for key, value in kwargs.items():
+                if record.get(key) != value:
+                    match = False
+                    break
+            if match:
+                results.append(record)
+        return results
+
+    def mark_relation(self, record_id, relation_type):
+        if record_id in self.data:
+            self.data[record_id - 1]['relation_type'] = relation_type.name.lower()
+            return True
+        return False
+
+    def get_relations_by_type(self, relation_type, folder=None):
+        results = []
+        for record in self.data.values():
+            if record.get('relation_type') == relation_type.name.lower():
+                if folder is None or ( '/' in record['file_name'] and record['file_name'].split('/')[0] == folder):
+                    results.append(record)
+        return results
+
+
 import io
 import logging
 
@@ -19,7 +97,7 @@ st.set_page_config(
 # Sidebar navigation with icons
 page = st.sidebar.radio(
     "📑 পৃষ্ঠা নির্বাচন করুন",
-    ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য", "📊 ডেটা বিশ্লেষণ"]
+    ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য", "📊 ডেটা বিশ্লেষণ", "👥 সম্পর্ক তালিকা"]
 )
 
 
@@ -194,7 +272,7 @@ def edit_record(record_id, record_data):
     return False
 
 def display_record_card(record, record_id):
-    """Display a single record in a card format"""
+    """Display a single record in a card format with relation buttons"""
     st.markdown(f"""
     <div class='record-card'>
         <h4>🪪 {record['নাম']}</h4>
@@ -211,7 +289,7 @@ def display_record_card(record, record_id):
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
@@ -219,7 +297,6 @@ def display_record_card(record, record_id):
 
     with col2:
         if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
-            # Add confirmation dialog
             st.warning("আপনি কি নিশ্চিত যে আপনি এই রেকর্ডটি মুছতে চান?")
             if st.button("হ্যাঁ, মুছে ফেলুন", key=f"confirm_delete_{record_id}"):
                 try:
@@ -230,6 +307,20 @@ def display_record_card(record, record_id):
                         st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
                 except Exception as e:
                     st.error(f"❌ রেকর্ড মুছে ফেলার সময় সমস্যা: {str(e)}")
+
+    with col3:
+        if record.get('relation_type') != 'friend':
+            if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}", type="primary"):
+                if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
+                    st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
+                    st.rerun()
+
+    with col4:
+        if record.get('relation_type') != 'enemy':
+            if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}", type="secondary"):
+                if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
+                    st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
+                    st.rerun()
 
     # Show edit form if this record is being edited
     if st.session_state.editing == record_id:
@@ -776,6 +867,60 @@ st.markdown("""
 
 
 
+def show_relations_page():
+    st.header("👥 সম্পর্ক তালিকা")
+
+    # Get all files and organize them by folders
+    files = st.session_state.storage.get_file_names()
+    if not files:
+        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+        return
+
+    # Organize files by folders
+    folders = set()
+    for file in files:
+        if '/' in file:
+            folder = file.split('/', 1)[0]
+            folders.add(folder)
+
+    # Add "All Folders" option
+    folders = ["সকল ফোল্ডার"] + sorted(list(folders))
+
+    # Folder selection
+    selected_folder = st.selectbox(
+        "📁 ফোল্ডার নির্বাচন করুন",
+        folders,
+        key="relations_folder_select"
+    )
+
+    # Create tabs for Friends and Enemies
+    friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
+
+    with friend_tab:
+        folder = None if selected_folder == "সকল ফোল্ডার" else selected_folder
+        friends = st.session_state.storage.get_relations_by_type(RelationType.FRIEND, folder)
+
+        if friends:
+            st.write(f"📊 মোট {len(friends)}টি বন্ধু")
+            for friend in friends:
+                record_id = friend.pop('id')
+                display_record_card(friend, record_id)
+        else:
+            st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
+
+    with enemy_tab:
+        folder = None if selected_folder == "সকল ফোল্ডার" else selected_folder
+        enemies = st.session_state.storage.get_relations_by_type(RelationType.ENEMY, folder)
+
+        if enemies:
+            st.write(f"📊 মোট {len(enemies)}টি শত্রু")
+            for enemy in enemies:
+                record_id = enemy.pop('id')
+                display_record_card(enemy, record_id)
+        else:
+            st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
+
+# Update main() function
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
@@ -787,6 +932,8 @@ def main():
         show_search_page()
     elif "📊 ডেটা বিশ্লেষণ" == page:
         show_analysis_page()
+    elif "👥 সম্পর্ক তালিকা" == page:
+        show_relations_page()
     else:
         show_all_data_page()
 
