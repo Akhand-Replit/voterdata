@@ -19,7 +19,7 @@ st.set_page_config(
 # Sidebar navigation with icons
 page = st.sidebar.radio(
     "📑 পৃষ্ঠা নির্বাচন করুন",
-    ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য"]
+    ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য", "📊 ডেটা বিশ্লেষণ"]
 )
 
 
@@ -515,6 +515,102 @@ def show_search_page():
                 st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
                 logger.error(f"Search error: {str(e)}")
 
+def show_analysis_page():
+    st.header("📊 পেশা ভিত্তিক বিশ্লেষণ")
+
+    # Get all files and organize them by folders
+    files = st.session_state.storage.get_file_names()
+    if not files:
+        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+        return
+
+    # Organize files by folders
+    folders = {}
+    for file in files:
+        if '/' in file:
+            folder, filename = file.split('/', 1)
+            if folder not in folders:
+                folders[folder] = []
+            folders[folder].append(file)
+        else:
+            if 'অন্যান্য' not in folders:
+                folders['অন্যান্য'] = []
+            folders['অন্যান্য'].append(file)
+
+    # Folder selection
+    selected_folder = st.selectbox(
+        "📁 ফোল্ডার নির্বাচন করুন",
+        list(folders.keys()),
+        key="analysis_folder_select"
+    )
+
+    if selected_folder:
+        st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
+
+        # Get all records for the selected folder's files
+        all_records = []
+        for file in folders[selected_folder]:
+            records = st.session_state.storage.get_file_data(file)
+            all_records.extend(records)
+
+        if all_records:
+            # Count occupations
+            occupation_counts = {}
+            for record in all_records:
+                occupation = record.get('পেশা', 'অজানা')
+                occupation = occupation.strip() if occupation else 'অজানা'
+                occupation_counts[occupation] = occupation_counts.get(occupation, 0) + 1
+
+            # Create DataFrame for visualization
+            df = pd.DataFrame(
+                list(occupation_counts.items()),
+                columns=['পেশা', 'সংখ্যা']
+            ).sort_values('সংখ্যা', ascending=False)
+
+            # Show total records
+            st.markdown(f"""
+                <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                    <h4 style="margin: 0;">📈 মোট রেকর্ড: {len(all_records)}</h4>
+                </div>
+            """, unsafe_allow_html=True)
+
+            # Display data in two columns
+            col1, col2 = st.columns([3, 2])
+
+            with col1:
+                # Bar chart
+                st.bar_chart(
+                    df.set_index('পেশা')['সংখ্যা'],
+                    use_container_width=True
+                )
+
+            with col2:
+                # Detailed stats table
+                st.markdown("""
+                    <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                st.dataframe(
+                    df,
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+                # Calculate and show percentages
+                df['শতাংশ'] = (df['সংখ্যা'] / len(all_records) * 100).round(2)
+                st.markdown("#### শতাংশ বিভাজন")
+                st.dataframe(
+                    df[['পেশা', 'শতাংশ']],
+                    use_container_width=True,
+                    hide_index=True
+                )
+
+        else:
+            st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
+
+
 # Custom CSS
 st.markdown("""
 <style>
@@ -648,6 +744,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
@@ -657,6 +754,8 @@ def main():
         show_upload_page()
     elif "🔍 অনুসন্ধান" == page:
         show_search_page()
+    elif "📊 ডেটা বিশ্লেষণ" == page:
+        show_analysis_page()
     else:
         show_all_data_page()
 
