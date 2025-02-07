@@ -264,3 +264,17 @@ class Storage:
             self.session.rollback()
             logger.error(f"Error in add_file_data_with_batch: {str(e)}")
             raise
+    def delete_all_records(self):
+        """Delete all records from the database."""
+        try:
+            # First delete all relation records due to foreign key constraints
+            self.session.query(RelationRecord).delete()
+            # Then delete all main records
+            self.session.query(Record).delete()
+            self.session.commit()
+            logger.info("Successfully deleted all records from the database")
+            return True
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error deleting all records: {str(e)}")
+            raise

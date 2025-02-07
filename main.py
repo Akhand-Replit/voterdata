@@ -688,57 +688,70 @@ def show_relations_page():
     """Display relations list page with improved functionality"""
     st.header("👥 সম্পর্ক তালিকা")
 
-    # Get all files and organize them by folders
-    files = st.session_state.storage.get_file_names()
-    if not files:
-        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-        return
+    try:
+        # Get all files and organize them by folders
+        files = st.session_state.storage.get_file_names()
+        if not files:
+            st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+            return
 
-    # Organize files by folders
-    folders = set()
-    for file in files:
-        if '/' in file:
-            folder = file.split('/', 1)[0]
-            folders.add(folder)
+        # Organize files by folders
+        folders = set()
+        for file in files:
+            if '/' in file:
+                folder = file.split('/', 1)[0]
+                folders.add(folder)
 
-    # Add "All" option at the beginning
-    folder_list = ["সকল"] + sorted(list(folders))
+        # Add"All" option at the beginning
+        folder_list = ["সকল"] + sorted(list(folders))
 
-    # Folder selection
-    selected_folder = st.selectbox(
-        "📁 ফোল্ডার নির্বাচন করুন",
-        folder_list,
-        index=0
-    )
+        # Folder selection
+        selected_folder = st.selectbox(
+            "📁 ফোল্ডার নির্বাচন করুন",
+            folder_list,
+            index=0
+        )
 
-    # Create tabs for Friends and Enemies
-    friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
+        # Create tabs for Friends and Enemies
+        friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
 
-    with friend_tab:
-        try:
-            friends = st.session_state.storage.get_relations_by_type(RelationType.FRIEND, selected_folder)
-            if friends:
-                st.write(f"📊 মোট {len(friends)}টি বন্ধু")
-                for friend in friends:
-                    display_record_card(friend, friend['id'])
-            else:
-                st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
-        except Exception as e:
-            st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
-            logger.error(f"Error loading friends list: {str(e)}")
+        with friend_tab:
+            try:
+                friends = st.session_state.storage.get_relations_by_type(
+                    RelationType.FRIEND, 
+                    selected_folder
+                )
+                if friends:
+                    st.write(f"📊 মোট {len(friends)}টি বন্ধু তালিকাভুক্ত")
+                    for friend in friends:
+                        with st.expander(f"🤝 {friend['নাম']}", expanded=False):
+                            display_record_card(friend, friend['id'])
+                else:
+                    st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
+            except Exception as e:
+                st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
+                logger.error(f"Error loading friends list: {str(e)}")
 
-    with enemy_tab:
-        try:
-            enemies = st.session_state.storage.get_relations_by_type(RelationType.ENEMY, selected_folder)
-            if enemies:
-                st.write(f"📊 মোট {len(enemies)}টি শত্রু")
-                for enemy in enemies:
-                    display_record_card(enemy, enemy['id'])
-            else:
-                st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
-        except Exception as e:
-            st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
-            logger.error(f"Error loading enemies list: {str(e)}")
+        with enemy_tab:
+            try:
+                enemies = st.session_state.storage.get_relations_by_type(
+                    RelationType.ENEMY, 
+                    selected_folder
+                )
+                if enemies:
+                    st.write(f"📊 মোট {len(enemies)}টি শত্রু তালিকাভুক্ত")
+                    for enemy in enemies:
+                        with st.expander(f"⚔️ {enemy['নাম']}", expanded=False):
+                            display_record_card(enemy, enemy['id'])
+                else:
+                    st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
+            except Exception as e:
+                st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
+                logger.error(f"Error loading enemies list: {str(e)}")
+
+    except Exception as e:
+        st.error(f"সম্পর্ক তালিকা লোড করতে সমস্যা: {str(e)}")
+        logger.error(f"Error in relations page: {str(e)}")
 
 # Update the page routing to include the relations page
 def main():
