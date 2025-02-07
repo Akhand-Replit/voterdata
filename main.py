@@ -278,6 +278,34 @@ def display_record_card(record, record_id):
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
 
+    # Clear All Data button at the top
+    if st.button("🗑️ সমস্ত ডেটা মুছুন", type="secondary", use_container_width=True):
+        st.session_state.confirm_delete_all = True
+
+    # Confirmation dialog for clearing all data
+    if 'confirm_delete_all' in st.session_state and st.session_state.confirm_delete_all:
+        st.warning("""
+        ⚠️ সতর্কতা!
+        আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?
+        এই কাজটি অপরিবর্তনীয়!
+        """)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("হ্যাঁ, সব মুছে ফেলুন", type="primary", use_container_width=True):
+                try:
+                    st.session_state.storage.delete_all_records()
+                    st.success("✅ সমস্ত ডেটা সফলভাবে মুছে ফেলা হয়েছে")
+                    st.session_state.confirm_delete_all = False
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+        with col2:
+            if st.button("না, বাতিল করুন", type="secondary", use_container_width=True):
+                st.session_state.confirm_delete_all = False
+                st.rerun()
+
     try:
         # Get all files and organize them by folders
         with st.spinner('ফাইল তালিকা লোড হচ্ছে...'):
@@ -303,18 +331,50 @@ def show_all_data_page():
 
         if selected_folder:
             files_in_folder = folders[selected_folder]
-            selected_file = st.selectbox(
-                "📄 ফাইল নির্বাচন করুন",
-                files_in_folder,
-                index=0 if files_in_folder else None
-            )
+
+            # File selection and delete button in the same row
+            col1, col2 = st.columns([4, 1])
+
+            with col1:
+                selected_file = st.selectbox(
+                    "📄 ফাইল নির্বাচন করুন",
+                    files_in_folder,
+                    index=0 if files_in_folder else None
+                )
+
+            with col2:
+                if selected_file and st.button("🗑️ ফাইল মুছুন", key=f"delete_file_{selected_file}"):
+                    st.session_state.file_to_delete = selected_file
+
+            # File deletion confirmation
+            if st.session_state.file_to_delete:
+                st.warning(f"""
+                ⚠️ সতর্কতা!
+                আপনি কি নিশ্চিত যে আপনি '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলতে চান?
+                """)
+
+                confirm_col1, confirm_col2 = st.columns([1, 1])
+                with confirm_col1:
+                    if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_file_delete", type="primary"):
+                        try:
+                            st.session_state.storage.delete_file_data(st.session_state.file_to_delete)
+                            st.success(f"✅ '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলা হয়েছে")
+                            st.session_state.file_to_delete = None
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ ফাইল মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+                with confirm_col2:
+                    if st.button("না, বাতিল করুন", key="cancel_file_delete", type="secondary"):
+                        st.session_state.file_to_delete = None
+                        st.rerun()
 
             if selected_file:
                 # Add pagination
                 page = st.number_input('পৃষ্ঠা নম্বর', min_value=1, value=1)
                 per_page = st.select_slider('প্রতি পৃষ্ঠায় রেকর্ড সংখ্যা', 
-                                          options=[50, 100, 200, 500], 
-                                          value=100)
+                                              options=[50, 100, 200, 500], 
+                                              value=100)
 
                 with st.spinner('তথ্য লোড হচ্ছে...'):
                     result = st.session_state.storage.get_file_data(
@@ -412,6 +472,92 @@ def show_analysis_page():
         st.error(f"❌ ফোল্ডার তালিকা লোড করতে সমস্যা হয়েছে: {str(e)}")
         logger.error(f"Error loading folders: {str(e)}")
 
+
+def show_relations_page():
+    """Display relations list page with improved functionality"""
+    st.header("👥 সম্পর্ক তালিকা")
+
+    try:
+        # Get all files and organize them by folders
+        files = st.session_state.storage.get_file_names()
+        if not files:
+            st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+            return
+
+        # Organize files by folders
+        folders = set()
+        for file in files:
+            if '/' in file:
+                folder = file.split('/', 1)[0]
+                folders.add(folder)
+
+        # Add "All" option at the beginning
+        folder_list = ["সকল"] + sorted(list(folders))
+
+        # Folder selection
+        selected_folder = st.selectbox(
+            "📁 ফোল্ডার নির্বাচন করুন",
+            folder_list,
+            index=0
+        )
+
+        # Create tabs for Friends and Enemies
+        friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
+
+        with friend_tab:
+            try:
+                friends = st.session_state.storage.get_relations_by_type(
+                    RelationType.FRIEND, 
+                    selected_folder
+                )
+                if friends:
+                    st.write(f"📊 মোট {len(friends)}টি বন্ধু তালিকাভুক্ত")
+                    for friend in friends:
+                        with st.expander(f"🤝 {friend['নাম']}", expanded=False):
+                            display_record_card(friend, friend['id'])
+                else:
+                    st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
+            except Exception as e:
+                st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
+                logger.error(f"Error loading friends list: {str(e)}")
+
+        with enemy_tab:
+            try:
+                enemies = st.session_state.storage.get_relations_by_type(
+                    RelationType.ENEMY, 
+                    selected_folder
+                )
+                if enemies:
+                    st.write(f"📊 মোট {len(enemies)}টি শত্রু তালিকাভুক্ত")
+                    for enemy in enemies:
+                        with st.expander(f"⚔️ {enemy['নাম']}", expanded=False):
+                            display_record_card(enemy, enemy['id'])
+                else:
+                    st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
+            except Exception as e:
+                st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
+                logger.error(f"Error loading enemies list: {str(e)}")
+
+    except Exception as e:
+        st.error(f"সম্পর্ক তালিকা লোড করতে সমস্যা: {str(e)}")
+        logger.error(f"Error in relations page: {str(e)}")
+
+# Update the page routing to include the relations page
+def main():
+    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
+
+    if page == "🏠 হোম":
+        show_home_page()
+    elif page == "📤 ফাইল আপলোড":
+        show_upload_page()
+    elif page == "🔍 অনুসন্ধান":
+        show_search_page()
+    elif page == "📊 ডেটা বিশ্লেষণ":
+        show_analysis_page()
+    elif page == "👥 সম্পর্ক তালিকা":
+        show_relations_page()
+    else:
+        show_all_data_page()
 
 def show_home_page():
     # Container for better spacing
@@ -685,6 +831,7 @@ def show_analysis_page():
     except Exception as e:
         st.error(f"❌ ফোল্ডার তালিকা লোড করতে সমস্যা হয়েছে: {str(e)}")
         logger.error(f"Error loading folders: {str(e)}")
+
 
 def show_relations_page():
     """Display relations list page with improved functionality"""
