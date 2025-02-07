@@ -28,7 +28,7 @@ class Record(Base):
     পেশা = Column(String)
     জন্ম_তারিখ = Column(String)
     ঠিকানা = Column(String)
-    relation_type = Column(Enum(RelationType), default=RelationType.NONE)
+    relation_type = Column(Enum(RelationType), default=RelationType.NONE, nullable=False)
 
 class Storage:
     def __init__(self):
@@ -166,21 +166,37 @@ class Storage:
 
     def add_file_data_with_batch(self, filename, batch_name, records):
         """Add or update file data with batch information."""
-        full_filename = f"{batch_name}/{filename}"
-        for record in records:
-            db_record = Record(
-                file_name=full_filename,
-                ক্রমিক_নং=record.get('ক্রমিক_নং', ''),
-                নাম=record.get('নাম', ''),
-                ভোটার_নং=record.get('ভোটার_নং', ''),
-                পিতার_নাম=record.get('পিতার_নাম', ''),
-                মাতার_নাম=record.get('মাতার_নাম', ''),
-                পেশা=record.get('পেশা', ''),
-                জন্ম_তারিখ=record.get('জন্ম_তারিখ', ''),
-                ঠিকানা=record.get('ঠিকানা', '')
-            )
-            self.session.add(db_record)
-        self.session.commit()
+        try:
+            full_filename = f"{batch_name}/{filename}"
+            # Process records in smaller batches to avoid transaction issues
+            batch_size = 100
+            for i in range(0, len(records), batch_size):
+                batch = records[i:i + batch_size]
+                try:
+                    # Start a new transaction for each batch
+                    for record in batch:
+                        db_record = Record(
+                            file_name=full_filename,
+                            ক্রমিক_নং=record.get('ক্রমিক_নং', ''),
+                            নাম=record.get('নাম', ''),
+                            ভোটার_নং=record.get('ভোটার_নং', ''),
+                            পিতার_নাম=record.get('পিতার_নাম', ''),
+                            মাতার_নাম=record.get('মাতার_নাম', ''),
+                            পেশা=record.get('পেশা', ''),
+                            জন্ম_তারিখ=record.get('জন্ম_তারিখ', ''),
+                            ঠিকানা=record.get('ঠিকানা', '')
+                        )
+                        self.session.add(db_record)
+                    self.session.commit()
+                    logger.info(f"Successfully added batch of {len(batch)} records")
+                except Exception as e:
+                    self.session.rollback()
+                    logger.error(f"Error adding batch: {str(e)}")
+                    raise
+        except Exception as e:
+            self.session.rollback()
+            logger.error(f"Error in add_file_data_with_batch: {str(e)}")
+            raise
 
     def mark_relation(self, record_id: int, relation_type: RelationType) -> bool:
         """Mark a record as friend or enemy"""

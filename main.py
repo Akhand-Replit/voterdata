@@ -124,35 +124,45 @@ def show_upload_page():
                     continue
 
                 with st.spinner(f'"{uploaded_file.name}" প্রক্রিয়াকরণ চলছে...'):
-                    records, error = process_uploaded_file(uploaded_file)
-
-                    if error:
-                        st.error(f"❌ '{uploaded_file.name}': {error}")
-                        continue
-
                     try:
-                        # Save to database with batch information
-                        st.session_state.storage.add_file_data_with_batch(
-                            uploaded_file.name,
-                            batch_name,
-                            records
-                        )
+                        records, error = process_uploaded_file(uploaded_file)
 
-                        # Update success status
-                        total_records += len(records)
-                        st.success(f"✅ '{uploaded_file.name}' সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+                        if error:
+                            st.error(f"❌ '{uploaded_file.name}': {error}")
+                            continue
 
-                        # Show sample data
-                        if records:  # Check if records exist
-                            st.markdown("##### নমুনা ডেটা:")
-                            sample_df = pd.DataFrame([records[0]])
-                            st.dataframe(sample_df, use_container_width=True)
+                        if not records:
+                            st.warning(f"⚠️ '{uploaded_file.name}': কোন রেকর্ড পাওয়া যায়নি")
+                            continue
 
-                        # Mark as processed
-                        st.session_state.processed_files.add(batch_file_key)
+                        try:
+                            # Save to database with batch information
+                            st.session_state.storage.add_file_data_with_batch(
+                                uploaded_file.name,
+                                batch_name,
+                                records
+                            )
+
+                            # Update success status
+                            total_records += len(records)
+                            st.success(f"✅ '{uploaded_file.name}' সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
+
+                            # Show sample data
+                            if records:
+                                st.markdown("##### নমুনা ডেটা:")
+                                sample_df = pd.DataFrame([records[0]])
+                                st.dataframe(sample_df, use_container_width=True)
+
+                            # Mark as processed
+                            st.session_state.processed_files.add(batch_file_key)
+
+                        except Exception as e:
+                            logger.error(f"Error saving file {uploaded_file.name}: {str(e)}")
+                            st.error(f"❌ ডেটা সংরক্ষণে সমস্যা। অনুগ্রহ করে আবার চেষ্টা করুন।")
+
                     except Exception as e:
-                        logger.error(f"Error saving file {uploaded_file.name}: {str(e)}")
-                        st.error(f"❌ ডেটা সংরক্ষণে সমস্যা: {str(e)}")
+                        logger.error(f"Error processing file {uploaded_file.name}: {str(e)}")
+                        st.error(f"❌ ফাইল প্রক্রিয়াকরণে সমস্যা: {str(e)}")
 
             if total_records > 0:
                 st.info(f"📈 সর্বমোট {total_records}টি রেকর্ড সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে")
@@ -693,8 +703,7 @@ st.markdown("""
         padding: 0.5rem;
     }
     h1 {
-        color: #1E1E1E;
-        padding-bottom: 2rem;
+        color: #1E1E1E;padding-bottom: 2rem;
         font-weight: 600;
     }
     h2 {
