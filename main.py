@@ -209,70 +209,72 @@ def edit_record(record_id, record_data):
 
 def display_record_card(record, record_id):
     """Display a single record in a card format with relation buttons"""
-    relation_type = record.get('relation_type', RelationType.NONE.value)
+    try:
+        # Ensure relation_type is properly handled
+        relation_type = record.get('relation_type', RelationType.NONE.value)
 
-    st.markdown(f"""
-    <div class='record-card'>
-        <h4>🪪 {record['নাম']}</h4>
-        <p><strong>ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
-        <p><strong>ভোটার নং:</strong> {record['ভোটার_নং']}</p>
-        <p><strong>পিতার নাম:</strong> {record['পিতার_নাম']}</p>
-        <p><strong>মাতার নাম:</strong> {record['মাতার_নাম']}</p>
-        <p><strong>পেশা:</strong> {record['পেশা']}</p>
-        <p><strong>জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
-        <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
-        <div style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
-            <p style="color: #666; font-size: 0.9em;">📂 ফাইল অবস্থান: {record['file_name']}</p>
-            <p style="color: #666; font-size: 0.9em;">🔗 সম্পর্ক: {
-                "বন্ধু" if relation_type == RelationType.FRIEND.value 
-                else "শত্রু" if relation_type == RelationType.ENEMY.value 
-                else "অজানা"
-            }</p>
+        # Create the card display
+        st.markdown(f"""
+        <div class='record-card'>
+            <h4>🪪 {record['নাম']}</h4>
+            <p><strong>ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
+            <p><strong>ভোটার নং:</strong> {record['ভোটার_নং']}</p>
+            <p><strong>পিতার নাম:</strong> {record['পিতার_নাম']}</p>
+            <p><strong>মাতার নাম:</strong> {record['মাতার_নাম']}</p>
+            <p><strong>পেশা:</strong> {record['পেশা']}</p>
+            <p><strong>জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
+            <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
+            <div style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
+                <p style="color: #666; font-size: 0.9em;">📂 ফাইল অবস্থান: {record['file_name']}</p>
+                <p style="color: #666; font-size: 0.9em;">🔗 বর্তমান সম্পর্ক: {
+                    "বন্ধু" if relation_type == RelationType.FRIEND.value 
+                    else "শত্রু" if relation_type == RelationType.ENEMY.value 
+                    else "অজানা"
+                }</p>
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
-    col1, col2, col3, col4 = st.columns(4)
+        # Action buttons in columns
+        col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
-            st.session_state.editing = record_id
+        with col1:
+            if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}"):
+                st.session_state.editing = record_id
 
-    with col2:
-        if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
-            st.warning("আপনি কি নিশ্চিত যে আপনি এই রেকর্ডটি মুছতে চান?")
-            if st.button("হ্যাঁ, মুছে ফেলুন", key=f"confirm_delete_{record_id}"):
-                try:
-                    if st.session_state.storage.delete_record(record_id):
-                        st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
+        with col2:
+            if st.button("🗑️ মুছুন", key=f"delete_{record_id}"):
+                if st.session_state.storage.delete_record(record_id):
+                    st.success("✅ রেকর্ড মুছে ফেলা হয়েছে")
+                    st.rerun()
+                else:
+                    st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
+
+        with col3:
+            if relation_type != RelationType.FRIEND.value:
+                if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}"):
+                    if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
+                        st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
                         st.rerun()
                     else:
-                        st.error("❌ রেকর্ড মুছে ফেলা যায়নি")
-                except Exception as e:
-                    st.error(f"❌ রেকর্ড মুছে ফেলার সময় সমস্যা: {str(e)}")
+                        st.error("❌ বন্ধু হিসেবে চিহ্নিত করা যায়নি")
 
-    with col3:
-        if relation_type != RelationType.FRIEND.value:
-            if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}"):
-                if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
-                    st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
-                    st.rerun()
-                else:
-                    st.error("❌ বন্ধু হিসেবে চিহ্নিত করা যায়নি")
+        with col4:
+            if relation_type != RelationType.ENEMY.value:
+                if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}"):
+                    if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
+                        st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
+                        st.rerun()
+                    else:
+                        st.error("❌ শত্রু হিসেবে চিহ্নিত করা যায়নি")
 
-    with col4:
-        if relation_type != RelationType.ENEMY.value:
-            if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}"):
-                if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
-                    st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
-                    st.rerun()
-                else:
-                    st.error("❌ শত্রু হিসেবে চিহ্নিত করা যায়নি")
+        if st.session_state.editing == record_id:
+            if edit_record(record_id, record):
+                st.session_state.editing = None
+                st.rerun()
 
-    if st.session_state.editing == record_id:
-        if edit_record(record_id, record):
-            st.session_state.editing = None
-            st.rerun()
+    except Exception as e:
+        st.error(f"রেকর্ড প্রদর্শনে সমস্যা: {str(e)}")
 
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
@@ -704,7 +706,7 @@ st.markdown("""
     .stButton>button:active {
         transform: translateY(0);
     }
-    .stTextInput>div>div>input {
+    .stTextInput>div>>div>input {
         border-radius: 8px;
         font-family: 'SolaimanLipi', Arial, sans-serif !important;
         border: 1px solid #e0e0e0;
@@ -811,52 +813,67 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
 def show_relations_page():
     st.header("👥 সম্পর্ক তালিকা")
 
-    # Get all folders
+    # Get all files and organize them by folders
     files = st.session_state.storage.get_file_names()
     if not files:
         st.info("❌ কোন ফাইল আপলোড করা হয়নি")
         return
 
-    folders = set(file.split('/')[0] for file in files if '/' in file)
-    folders.add('সকল')  # Add an option to show all relations
+    # Organize files by folders
+    folders = {}
+    for file in files:
+        if '/' in file:
+            folder = file.split('/', 1)[0]
+            if folder not in folders:
+                folders[folder] = []
+            folders[folder].append(file)
+
+    # Add "All" option at the beginning
+    folder_list = ["সকল"] + sorted(list(folders.keys()))
 
     # Folder selection
     selected_folder = st.selectbox(
         "📁 ফোল্ডার নির্বাচন করুন",
-        list(folders),
-        index=0 if folders else None
+        folder_list,
+        index=0
     )
 
-    if selected_folder:
-        # Create tabs for friends and enemies
-        tab1, tab2 = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
+    # Create tabs for Friends and Enemies
+    friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
 
-        with tab1:
-            friends = st.session_state.storage.get_relations_by_type(
-                RelationType.FRIEND,
-                None if selected_folder == 'সকল' else selected_folder
-            )
+    with friend_tab:
+        folder = None if selected_folder == "সকল" else selected_folder
+        try:
+            friends = st.session_state.storage.get_relations_by_type(RelationType.FRIEND, folder)
             if friends:
-                st.write(f"মোট {len(friends)} জন বন্ধু পাওয়া গেছে:")
+                st.write(f"📊 মোট {len(friends)}টি বন্ধু")
                 for friend in friends:
-                    display_record_card(friend, friend['id'])
+                    record_id = friend.get('id')
+                    if record_id:
+                        display_record_card(friend, record_id)
             else:
-                st.info("কোন বন্ধু তালিকাভুক্ত করা হয়নি")
+                st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
+        except Exception as e:
+            st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
 
-        with tab2:
-            enemies = st.session_state.storage.get_relations_by_type(
-                RelationType.ENEMY,
-                None if selected_folder == 'সকল' else selected_folder
-            )
+    with enemy_tab:
+        folder = None if selected_folder == "সকল" else selected_folder
+        try:
+            enemies = st.session_state.storage.get_relations_by_type(RelationType.ENEMY, folder)
             if enemies:
-                st.write(f"মোট {len(enemies)} জন শত্রু তালিকাভুক্ত আছে:")
+                st.write(f"📊 মোট {len(enemies)}টি শত্রু")
                 for enemy in enemies:
-                    display_record_card(enemy, enemy['id'])
+                    record_id = enemy.get('id')
+                    if record_id:
+                        display_record_card(enemy, record_id)
             else:
-                st.info("কোন শত্রু তালিকাভুক্ত করা হয়নি")
+                st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
+        except Exception as e:
+            st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
 
 # Update the page routing to include the relations page
 def main():
