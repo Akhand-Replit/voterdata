@@ -1,85 +1,7 @@
 import streamlit as st
 import pandas as pd
-from enum import Enum
-
-# Placeholder for data_processor and Storage - Replace with your actual implementations
-def process_text_file(content):
-    # Replace with your actual text processing logic
-    return [{'ক্রমিক_নং': '1', 'নাম': 'নাম ১', 'ভোটার_নং': 'ভোটার নং ১', 'পিতার_নাম': 'পিতা ১', 'মাতার_নাম': 'মা ১', 'পেশা': 'পেশা ১', 'জন্ম_তারিখ': 'জন্মতারিখ ১', 'ঠিকানা': 'ঠিকানা ১', 'file_name': 'file1.txt'}]
-
-
-class RelationType(Enum):
-    FRIEND = 1
-    ENEMY = 2
-
-
-class Storage:
-    def __init__(self):
-        self.data = {}
-        self.next_id = 1
-
-    def add_file_data_with_batch(self, file_name, batch_name, records):
-        for record in records:
-            record['file_name'] = file_name
-            record['id'] = self.next_id
-            self.next_id += 1
-            self.data[self.next_id -1] = record
-
-    def update_record(self, record_id, edited_data):
-        if record_id in self.data:
-            self.data[record_id -1].update(edited_data)
-            return True
-        return False
-
-    def delete_record(self, record_id):
-        if record_id in self.data:
-            del self.data[record_id -1]
-            return True
-        return False
-
-    def delete_all_records(self):
-        self.data = {}
-        self.next_id = 1
-
-    def get_file_names(self):
-        files = set()
-        for record in self.data.values():
-            files.add(record['file_name'])
-        return list(files)
-
-    def get_file_data(self, file_name):
-        return [record for record in self.data.values() if record['file_name'] == file_name]
-
-    def get_all_records(self):
-        return list(self.data.values())
-
-    def search_records(self, **kwargs):
-        results = []
-        for record in self.data.values():
-            match = True
-            for key, value in kwargs.items():
-                if record.get(key) != value:
-                    match = False
-                    break
-            if match:
-                results.append(record)
-        return results
-
-    def mark_relation(self, record_id, relation_type):
-        if record_id in self.data:
-            self.data[record_id - 1]['relation_type'] = relation_type.name.lower()
-            return True
-        return False
-
-    def get_relations_by_type(self, relation_type, folder=None):
-        results = []
-        for record in self.data.values():
-            if record.get('relation_type') == relation_type.name.lower():
-                if folder is None or ( '/' in record['file_name'] and record['file_name'].split('/')[0] == folder):
-                    results.append(record)
-        return results
-
-
+from data_processor import process_text_file
+from storage import Storage
 import io
 import logging
 
@@ -99,7 +21,6 @@ page = st.sidebar.radio(
     "📑 পৃষ্ঠা নির্বাচন করুন",
     ["🏠 হোম", "📤 ফাইল আপলোড", "🔍 অনুসন্ধান", "📋 সকল তথ্য", "📊 ডেটা বিশ্লেষণ", "👥 সম্পর্ক তালিকা"]
 )
-
 
 # Initialize session state for file upload and editing
 if 'upload_state' not in st.session_state:
@@ -146,6 +67,7 @@ def process_uploaded_file(uploaded_file):
 
         # Process the content
         records = process_text_file(content)
+        logger.info(f"Processed {len(records) if records else 0} records from {uploaded_file.name}")
 
         if not records:
             return None, "কোন রেকর্ড পাওয়া যায়নি"
@@ -178,10 +100,6 @@ def show_upload_page():
         placeholder="উদাহরণ: ময়মনসিংহ_২০২৪"
     )
 
-    # Initialize upload states if not exists
-    if 'processed_files' not in st.session_state:
-        st.session_state.processed_files = set()
-
     try:
         uploaded_files = st.file_uploader(
             "টেক্সট ফাইল নির্বাচন করুন",
@@ -198,6 +116,9 @@ def show_upload_page():
         if uploaded_files and batch_name:
             total_records = 0
             for uploaded_file in uploaded_files:
+                if not uploaded_file:
+                    continue
+
                 batch_file_key = f"{batch_name}/{uploaded_file.name}"
                 if batch_file_key in st.session_state.processed_files:
                     continue
@@ -211,16 +132,21 @@ def show_upload_page():
 
                     try:
                         # Save to database with batch information
-                        st.session_state.storage.add_file_data_with_batch(uploaded_file.name, batch_name, records)
+                        st.session_state.storage.add_file_data_with_batch(
+                            uploaded_file.name,
+                            batch_name,
+                            records
+                        )
 
                         # Update success status
                         total_records += len(records)
                         st.success(f"✅ '{uploaded_file.name}' সফলভাবে '{batch_name}' ফোল্ডারে আপলোড হয়েছে ({len(records)}টি রেকর্ড)")
 
                         # Show sample data
-                        st.markdown("##### নমুনা ডেটা:")
-                        sample_df = pd.DataFrame([records[0]])
-                        st.dataframe(sample_df, use_container_width=True)
+                        if records:  # Check if records exist
+                            st.markdown("##### নমুনা ডেটা:")
+                            sample_df = pd.DataFrame([records[0]])
+                            st.dataframe(sample_df, use_container_width=True)
 
                         # Mark as processed
                         st.session_state.processed_files.add(batch_file_key)
@@ -776,7 +702,7 @@ st.markdown("""
         padding-bottom: 1rem;
         font-weight: 500;
     }
-    .stProgress > div > div > div > div {
+    .stProgress > div > div > div > div{
         background-color: #FF4B4B;
     }
     .upload-stats {
