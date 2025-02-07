@@ -35,6 +35,10 @@ if 'upload_state' not in st.session_state:
 if 'editing' not in st.session_state:
     st.session_state.editing = None
 
+# Initialize file deletion state
+if 'file_to_delete' not in st.session_state:
+    st.session_state.file_to_delete = None
+
 # Initialize confirmation dialogs state
 if 'confirm_delete' not in st.session_state:
     st.session_state.confirm_delete = False
