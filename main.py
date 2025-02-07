@@ -594,224 +594,95 @@ def show_analysis_page():
         return
 
     # Organize files by folders
-    folders = {}
+    folders = set()
     for file in files:
         if '/' in file:
-            folder, filename = file.split('/', 1)
-            if folder not in folders:
-                folders[folder] = []
-            folders[folder].append(file)
-        else:
-            if 'অন্যান্য' not in folders:
-                folders['অন্যান্য'] = []
-            folders['অন্যান্য'].append(file)
+            folder = file.split('/', 1)[0]
+            folders.add(folder)
+
+    # Add 'All' option at the beginning
+    folder_list = ["সকল"] + sorted(list(folders))
 
     # Folder selection
     selected_folder = st.selectbox(
         "📁 ফোল্ডার নির্বাচন করুন",
-        list(folders.keys()),
+        folder_list,
         key="analysis_folder_select"
     )
 
     if selected_folder:
         st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
 
-        # Get all records for the selected folder's files
-        all_records = []
-        for file in folders[selected_folder]:
-            records = st.session_state.storage.get_file_data(file)
-            all_records.extend(records)
+        try:
+            # Get all records for selected folder
+            all_records = []
+            if selected_folder == "সকল":
+                all_records = st.session_state.storage.get_all_records()
+            else:
+                for file in files:
+                    if file.startswith(f"{selected_folder}/"):
+                        records = st.session_state.storage.get_file_data(file)
+                        all_records.extend(records)
 
-        if all_records:
-            # Count occupations
-            occupation_counts = {}
-            for record in all_records:
-                occupation = record.get('পেশা', 'অজানা')
-                occupation = occupation.strip() if occupation else 'অজানা'
-                occupation_counts[occupation] = occupation_counts.get(occupation, 0) + 1
+            if all_records:
+                # Count occupations
+                occupation_counts = {}
+                for record in all_records:
+                    occupation = record.get('পেশা', '').strip()
+                    occupation = occupation if occupation else 'অজানা'
+                    occupation_counts[occupation] = occupation_counts.get(occupation, 0) + 1
 
-            # Create DataFrame for visualization
-            df = pd.DataFrame(
-                list(occupation_counts.items()),
-                columns=['পেশা', 'সংখ্যা']
-            ).sort_values('সংখ্যা', ascending=False)
+                # Create DataFrame for visualization
+                df = pd.DataFrame(
+                    list(occupation_counts.items()),
+                    columns=['পেশা', 'সংখ্যা']
+                ).sort_values('সংখ্যা', ascending=False)
 
-            # Show total records
-            st.markdown(f"""
-                <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-                    <h4 style="margin: 0;">📈 মোট রেকর্ড: {len(all_records)}</h4>
-                </div>
-            """, unsafe_allow_html=True)
-
-            # Display data in two columns
-            col1, col2 = st.columns([3, 2])
-
-            with col1:
-                # Bar chart
-                st.bar_chart(
-                    df.set_index('পেশা')['সংখ্যা'],
-                    use_container_width=True
-                )
-
-            with col2:
-                # Detailed stats table
-                st.markdown("""
-                    <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
+                # Show total records
+                st.markdown(f"""
+                    <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                        <h4 style="margin: 0;">📈 মোট রেকর্ড: {len(all_records)}</h4>
                     </div>
                 """, unsafe_allow_html=True)
 
-                st.dataframe(
-                    df,
-                    use_container_width=True,
-                    hide_index=True
-                )
+                # Display data in two columns
+                col1, col2 = st.columns([3, 2])
 
-                # Calculate and show percentages
-                df['শতাংশ'] = (df['সংখ্যা'] / len(all_records) * 100).round(2)
-                st.markdown("#### শতাংশ বিভাজন")
-                st.dataframe(
-                    df[['পেশা', 'শতাংশ']],
-                    use_container_width=True,
-                    hide_index=True
-                )
+                with col1:
+                    # Bar chart
+                    st.bar_chart(
+                        df.set_index('পেশা')['সংখ্যা'],
+                        use_container_width=True
+                    )
 
-        else:
-            st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
+                with col2:
+                    # Detailed stats table
+                    st.markdown("""
+                        <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
+                        </div>
+                    """, unsafe_allow_html=True)
 
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
 
-# Custom CSS
-st.markdown("""
-<style>
-    .main {
-        padding: 2rem;
-    }
-    .stButton>button {
-        width: 100%;
-        border-radius: 10px;
-        height: 3em;
-        background-color: #FF4B4B;
-        color: white;
-        font-weight: 500;
-        border: none;
-        margin: 0.5rem 0;
-        transition: all 0.3s ease;
-    }
-    .stButton>button:hover {
-        background-color: #ff6b6b;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-    .stButton>button:active {
-        transform: translateY(0);
-    }
-    .stTextInput>div>>div>input {
-        border-radius: 8px;
-        font-family: 'SolaimanLipi', Arial, sans-serif !important;
-        border: 1px solid #e0e0e0;
-        font-size: 16px !important;
-        min-height: 45px;
-        padding: 0.5rem;
-    }
-    h1 {
-        color: #1E1E1E;padding-bottom: 2rem;
-        font-weight: 600;
-    }
-    h2 {
-        color: #2E2E2E;
-        padding-bottom: 1rem;
-        font-weight: 500;
-    }
-    .stProgress > div > div > div > div{
-        background-color: #FF4B4B;
-    }
-    .upload-stats {
-        padding: 1.5rem;
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        margin: 1rem 0;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    .record-card {
-        background-color: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        margin-bottom: 1.5rem;
-        border: 1px solid #f0f0f0;
-    }
-    .stAlert {
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 1rem 0;
-    }
-    div[data-testid="stToolbar"] {
-        display: none;
-    }
-    .stAlert > div {
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-    }
-    div[data-baseweb="select"] > div {
-        border-radius: 8px;
-        background-color: white;
-    }
-    .delete-button, .edit-button {
-        width: 100%;
-        padding: 0.75rem 1.5rem;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border: none;
-        margin: 0.5rem 0;
-    }
-    .delete-button {
-        background-color: #dc3545;
-        color: white;
-    }
-    .delete-button:hover {
-        background-color: #c82333;
-        box-shadow: 0 4px 8px rgba(220,53,69,0.2);
-    }
-    .edit-button {
-        background-color: #28a745;
-        color: white;
-    }
-    .edit-button:hover {
-        background-color: #218838;
-        box-shadow: 0 4px 8px rgba(40,167,69,0.2);
-    }
-    input, textarea, .stTextInput, .stSelectbox, [data-baseweb="input"] {
-        font-family: 'SolaimanLipi', Arial, sans-serif !important;
-    }
-    * {
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-    }
-    ::placeholder {
-        font-family: 'SolaimanLipi', Arial, sans-serif !important;
-        opacity: 0.7;
-    }
-</style>
-""", unsafe_allow_html=True)
+                    # Calculate and show percentages
+                    df['শতাংশ'] = (df['সংখ্যা'] / len(all_records) * 100).round(2)
+                    st.markdown("#### শতাংশ বিভাজন")
+                    st.dataframe(
+                        df[['পেশা', 'শতাংশ']],
+                        use_container_width=True,
+                        hide_index=True
+                    )
+            else:
+                st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
 
-# Add Bangla font support with multiple sources for better compatibility
-st.markdown("""
-<style>
-@font-face {
-    font-family: 'SolaimanLipi';
-    src: url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.woff2') format('woff2'),
-         url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.woff') format('woff'),
-         url('https://cdn.jsdelivr.net/gh/maateen/bangla-web-fonts/fonts/SolaimanLipi/SolaimanLipi.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-}
-</style>
-""", unsafe_allow_html=True)
-
-
+        except Exception as e:
+            st.error(f"বিশ্লেষণে সমস্যা হয়েছে: {str(e)}")
+            logger.error(f"Analysis error: {str(e)}")
 
 def show_relations_page():
     """Display relations list page with improved functionality"""
@@ -854,6 +725,7 @@ def show_relations_page():
                 st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
         except Exception as e:
             st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
+            logger.error(f"Error loading friends list: {str(e)}")
 
     with enemy_tab:
         try:
@@ -866,6 +738,7 @@ def show_relations_page():
                 st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
         except Exception as e:
             st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
+            logger.error(f"Error loading enemies list: {str(e)}")
 
 # Update the page routing to include the relations page
 def main():
