@@ -217,21 +217,32 @@ def display_record_card(record, record_id):
         st.markdown(f"""
         <div style="
             background: white;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
             padding: 1.5rem;
-            margin: 1rem 0;
-            transition: all 0.2s ease;
+            margin: 1.5rem 0;
             border: 1px solid #f0f0f0;
+            transition: transform 0.2s ease;
         ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h4 style="margin: 0; color: #1f1f1f; font-size: 1.25rem;">🪪 {record['নাম']}</h4>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h3 style="margin: 0; color: #1f1f1f; font-size: 1.5rem; font-weight: 600;">
+                        {record['নাম']}
+                    </h3>
+                    <p style="margin: 0.25rem 0 0 0; color: #666; font-size: 0.9rem;">
+                        ভোটার নং: {record['ভোটার_নং']}
+                    </p>
+                </div>
                 <span style="
                     background: {'#e6f4ea' if relation_type == RelationType.FRIEND.value else '#fce8e8' if relation_type == RelationType.ENEMY.value else '#f8f9fa'};
                     color: {'#137333' if relation_type == RelationType.FRIEND.value else '#c5221f' if relation_type == RelationType.ENEMY.value else '#5f6368'};
-                    padding: 0.25rem 0.75rem;
-                    border-radius: 20px;
+                    padding: 0.5rem 1rem;
+                    border-radius: 50px;
                     font-size: 0.875rem;
+                    font-weight: 500;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.5rem;
                 ">
                     {
                         "👥 বন্ধু" if relation_type == RelationType.FRIEND.value 
@@ -244,37 +255,112 @@ def display_record_card(record, record_id):
             <div style="
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
-                gap: 1rem;
-                margin-bottom: 1rem;
+                gap: 1.5rem;
+                margin: 1.5rem 0;
+                padding: 1rem;
+                background: #f8f9fa;
+                border-radius: 12px;
             ">
-                <div style="color: #444;">
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ক্রমিক নং:</strong> {record['ক্রমিক_নং']}</p>
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ভোটার নং:</strong> {record['ভোটার_নং']}</p>
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">পিতার নাম:</strong> {record['পিতার_নাম']}</p>
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">মাতার নাম:</strong> {record['মাতার_নাম']}</p>
+                <div>
+                    <div style="margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ক্রমিক নং</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ক্রমিক_নং']}</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পিতার নাম</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পিতার_নাম']}</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">মাতার নাম</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['মাতার_নাম']}</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">জন্ম তারিখ</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['জন্ম_তারিখ']}</p>
+                    </div>
                 </div>
-                <div style="color: #444;">
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">পেশা:</strong> {record['পেশা']}</p>
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">জন্ম তারিখ:</strong> {record['জন্ম_তারিখ']}</p>
-                    <p style="margin: 0.5rem 0;"><strong style="color: #666;">ঠিকানা:</strong> {record['ঠিকানা']}</p>
+                <div>
+                    <div style="margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">পেশা</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['পেশা']}</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ঠিকানা</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">{record['ঠিকানা']}</p>
+                    </div>
+                    <div>
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.875rem;">ফাইল</p>
+                        <p style="margin: 0; color: #1f1f1f; font-weight: 500;">📂 {record['file_name']}</p>
+                    </div>
                 </div>
             </div>
 
             <div style="
-                border-top: 1px solid #f0f0f0;
-                margin-top: 1rem;
-                padding-top: 1rem;
-                font-size: 0.875rem;
-                color: #666;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+                margin-top: 1.5rem;
             ">
-                <p style="margin: 0;">📂 ফাইল অবস্থান: {record['file_name']}</p>
+                <button style="
+                    background: #FF4B4B;
+                    color: white;
+                    border: none;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: opacity 0.2s;
+                    width: 100%;
+                " onclick="document.querySelector('#edit_{record_id}').click()">
+                    ✏️ সম্পাদনা
+                </button>
+                <button style="
+                    background: #f44336;
+                    color: white;
+                    border: none;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: opacity 0.2s;
+                    width: 100%;
+                " onclick="document.querySelector('#delete_{record_id}').click()">
+                    🗑️ মুছুন
+                </button>
+                <button style="
+                    background: {'#4CAF50' if relation_type != RelationType.FRIEND.value else '#e0e0e0'};
+                    color: white;
+                    border: none;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: opacity 0.2s;
+                    width: 100%;
+                    display: {'none' if relation_type == RelationType.FRIEND.value else 'block'};
+                " onclick="document.querySelector('#friend_{record_id}').click()">
+                    👥 বন্ধু হিসেবে যোগ করুন
+                </button>
+                <button style="
+                    background: {'#FF9800' if relation_type != RelationType.ENEMY.value else '#e0e0e0'};
+                    color: white;
+                    border: none;
+                    padding: 0.75rem;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-weight: 500;
+                    transition: opacity 0.2s;
+                    width: 100%;
+                    display: {'none' if relation_type == RelationType.ENEMY.value else 'block'};
+                " onclick="document.querySelector('#enemy_{record_id}').click()">
+                    ⚔️ শত্রু হিসেবে যোগ করুন
+                </button>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Action buttons in columns
+        # Hidden buttons for JavaScript click handlers
         col1, col2, col3, col4 = st.columns(4)
-
         with col1:
             if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}", type="primary"):
                 st.session_state.editing = record_id
@@ -583,9 +669,9 @@ def show_relations_page():
 
 # Update the page routing to include the relations page
 def main():
-    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
+    st.title("📚 বাংলা ট`েক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
-    if page == "🏠 হোম":
+    if page =="🏠 হোম":
         show_home_page()
     elif page == "📤 ফাইল আপলোড":
         show_upload_page()
