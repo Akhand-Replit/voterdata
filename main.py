@@ -233,155 +233,169 @@ def display_record_card(record, record_id):
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
 
-    # Data management section with full width
+    # Data management section
     st.markdown("""
         <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 2rem;">
             <h4 style="margin-bottom: 0.5rem;">ডাটা ম্যানেজমেন্ট</h4>
         </div>
     """, unsafe_allow_html=True)
 
-    if st.button("🗑️ সব ডেটা মুছে ফেলুন", type="secondary", key="delete_all"):
-        st.session_state.confirm_delete = True
-
-    if st.session_state.confirm_delete:
-        st.warning("""
-        ⚠️ সতর্কতা!
-        আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?
-        """)
-
-        confirm_col1, confirm_col2 = st.columns([1, 1])
-        with confirm_col1:
-            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_delete_final", type="primary"):
-                try:
-                    st.session_state.storage.delete_all_records()
-                    st.success("✅ সব ডেটা সফলভাবে মুছে ফেলা হয়েছে")
-                    st.session_state.confirm_delete = False
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
-
-        with confirm_col2:
-            if st.button("না, বাতিল করুন", key="cancel_delete", type="secondary"):
-                st.session_state.confirm_delete = False
-                st.rerun()
-
-    # File selection with full width
+    # Get all files and organize them by folders
     files = st.session_state.storage.get_file_names()
-
     if not files:
         st.info("❌ কোন ফাইল আপলোড করা হয়নি")
         return
 
-    # Initialize file deletion state if not exists
-    if 'file_to_delete' not in st.session_state:
-        st.session_state.file_to_delete = None
+    # Organize files by folders
+    folders = {}
+    for file in files:
+        if '/' in file:
+            folder, filename = file.split('/', 1)
+            if folder not in folders:
+                folders[folder] = []
+            folders[folder].append(file)
+        else:
+            if 'অন্যান্য' not in folders:
+                folders['অন্যান্য'] = []
+            folders['অন্যান্য'].append(file)
 
-    # File selection and delete button in the same row
-    col1, col2 = st.columns([4, 1])
+    # Display folders as tabs
+    selected_folder = st.selectbox("📁 ফোল্ডার নির্বাচন করুন", list(folders.keys()))
 
-    with col1:
-        selected_file = st.selectbox(
-            "📁 ফাইল নির্বাচন করুন",
-            files,
-            index=0 if files else None
-        )
+    if selected_folder:
+        files_in_folder = folders[selected_folder]
 
-    with col2:
-        if selected_file and st.button("🗑️ ফাইল মুছুন", key=f"delete_file_{selected_file}"):
-            st.session_state.file_to_delete = selected_file
+        # File selection and delete button in the same row
+        col1, col2 = st.columns([4, 1])
 
-    # File deletion confirmation
-    if st.session_state.file_to_delete:
-        st.warning(f"""
-        ⚠️ সতর্কতা!
-        আপনি কি নিশ্চিত যে আপনি '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলতে চান?
-        """)
+        with col1:
+            selected_file = st.selectbox(
+                "📄 ফাইল নির্বাচন করুন",
+                files_in_folder,
+                index=0 if files_in_folder else None
+            )
 
-        confirm_col1, confirm_col2 = st.columns([1, 1])
-        with confirm_col1:
-            if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_file_delete", type="primary"):
-                try:
-                    # Delete file and its records
-                    st.session_state.storage.delete_file_data(st.session_state.file_to_delete)
-                    st.success(f"✅ '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলা হয়েছে")
+        with col2:
+            if selected_file and st.button("🗑️ ফাইল মুছুন", key=f"delete_file_{selected_file}"):
+                st.session_state.file_to_delete = selected_file
+
+        # File deletion confirmation
+        if st.session_state.file_to_delete:
+            st.warning(f"""
+            ⚠️ সতর্কতা!
+            আপনি কি নিশ্চিত যে আপনি '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলতে চান?
+            """)
+
+            confirm_col1, confirm_col2 = st.columns([1, 1])
+            with confirm_col1:
+                if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_file_delete", type="primary"):
+                    try:
+                        st.session_state.storage.delete_file_data(st.session_state.file_to_delete)
+                        st.success(f"✅ '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলা হয়েছে")
+                        st.session_state.file_to_delete = None
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ ফাইল মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+            with confirm_col2:
+                if st.button("না, বাতিল করুন", key="cancel_file_delete", type="secondary"):
                     st.session_state.file_to_delete = None
                     st.rerun()
-                except Exception as e:
-                    st.error(f"❌ ফাইল মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
 
-        with confirm_col2:
-            if st.button("না, বাতিল করুন", key="cancel_file_delete", type="secondary"):
-                st.session_state.file_to_delete = None
-                st.rerun()
-
-    # Display file data
-    if selected_file:
-        with st.spinner('তথ্য লোড হচ্ছে...'):
-            records = st.session_state.storage.get_file_data(selected_file)
-            if records:
-                # Create a clean DataFrame display with full width
-                df = pd.DataFrame(records)
-                st.dataframe(
-                    df,
-                    use_container_width=True,
-                    hide_index=True
-                )
-            else:
-                st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
+        # Display file data
+        if selected_file:
+            with st.spinner('তথ্য লোড হচ্ছে...'):
+                records = st.session_state.storage.get_file_data(selected_file)
+                if records:
+                    df = pd.DataFrame(records)
+                    st.dataframe(
+                        df,
+                        use_container_width=True,
+                        hide_index=True
+                    )
+                else:
+                    st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
 
 def show_home_page():
-    # Hero Section with modern design
+    # Modern Hero Section with Gradient
     st.markdown("""
-        <div style="text-align: center; padding: 3rem 0; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-radius: 20px; margin-bottom: 2rem;">
-            <h1 style="font-size: 2.5rem; margin-bottom: 1rem;">📚 বাংলা টেক্সট প্রসেসিং</h1>
-            <p style="font-size: 1.2rem; color: #6c757d; margin-bottom: 2rem;">দ্রুত, নির্ভুল এবং সহজ টেক্সট ডেটা ম্যানেজমেন্ট</p>
-            <div style="max-width: 600px; margin: 0 auto;">
-                <img src="https://img.icons8.com/fluency/240/000000/database.png" style="width: 120px; margin-bottom: 2rem;">
-            </div>
+        <div style="text-align: center; padding: 3rem 0; background: linear-gradient(135deg, #FF4B4B 0%, #FF8080 100%); border-radius: 20px; margin-bottom: 2rem; color: white;">
+            <h1 style="font-size: 2.8rem; margin-bottom: 1rem; color: white;">📚 বাংলা টেক্সট প্রসেসিং</h1>
+            <p style="font-size: 1.3rem; margin-bottom: 2rem; opacity: 0.9;">দ্রুত, নির্ভুল এবং সহজ টেক্সট ডেটা ম্যানেজমেন্ট</p>
         </div>
     """, unsafe_allow_html=True)
 
-    # Features Section
-    st.markdown("""
-        <div style="margin: 2rem 0;">
-            <h2 style="text-align: center; margin-bottom: 2rem;">🌟 মূল বৈশিষ্ট্যসমূহ</h2>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
-                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B;">📤 ফাইল আপলোড</h3>
-                    <p>সহজে একাধিক টেক্সট ফাইল আপলোড করুন</p>
-                </div>
-                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B;">🔍 অনুসন্ধান</h3>
-                    <p>দ্রুত এবং সহজে তথ্য খুঁজে বের করুন</p>
-                </div>
-                <div style="background: white; padding: 1.5rem; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <h3 style="color: #FF4B4B;">📊 ডেটা ম্যানেজমেন্ট</h3>
-                    <p>সহজে তথ্য সংরক্ষণ এবং পরিচালনা করুন</p>
-                </div>
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Call to Action Section
-    st.markdown("""
-        <div style="text-align: center; margin: 3rem 0; padding: 2rem; background: linear-gradient(135deg, #FF4B4B 0%, #ff6b6b 100%); border-radius: 20px; color: white;">
-            <h2 style="margin-bottom: 1rem;">🚀 শুরু করুন</h2>
-            <p style="margin-bottom: 2rem;">আপনার প্রথম ফাইল আপলোড করে শুরু করুন</p>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Quick Stats or Info (if available)
+    # Quick Stats Section
     if hasattr(st.session_state, 'storage'):
         files = st.session_state.storage.get_file_names()
-        if files:
-            total_files = len(files)
-            st.markdown(f"""
-                <div style="text-align: center; margin-top: 2rem;">
-                    <p style="font-size: 1.1rem; color: #6c757d;">
-                        📈 বর্তমানে {total_files}টি ফাইল প্রক্রিয়াকরণ করা হয়েছে
-                    </p>
+        folders = set(file.split('/')[0] for file in files if '/' in file)
+
+        # Create three columns for stats
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("""
+                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📁</h3>
+                    <h4 style="margin-bottom: 0.5rem;">মোট ফোল্ডার</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
                 </div>
-            """, unsafe_allow_html=True)
+            """.format(len(folders)), unsafe_allow_html=True)
+
+        with col2:
+            st.markdown("""
+                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📄</h3>
+                    <h4 style="margin-bottom: 0.5rem;">মোট ফাইল</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
+                </div>
+            """.format(len(files)), unsafe_allow_html=True)
+
+        with col3:
+            total_records = len(st.session_state.storage.get_all_records())
+            st.markdown("""
+                <div style="text-align: center; padding: 1.5rem; background: white; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem; margin-bottom: 0.5rem;">📊</h3>
+                    <h4 style="margin-bottom: 0.5rem;">মোট রেকর্ড</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{}</p>
+                </div>
+            """.format(total_records), unsafe_allow_html=True)
+
+    # Features Section with Modern Cards
+    st.markdown("""
+        <div style="margin: 3rem 0;">
+            <h2 style="text-align: center; margin-bottom: 2rem; color: #333;">🌟 মূল বৈশিষ্ট্যসমূহ</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
+                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">📤</span> ফাইল আপলোড
+                    </h3>
+                    <p style="color: #666; margin-top: 1rem;">সহজে একাধিক টেক্সট ফাইল আপলোড করুন এবং ফোল্ডার অনুযায়ী সাজান</p>
+                </div>
+
+                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
+                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">🔍</span> অনুসন্ধান
+                    </h3>
+                    <p style="color: #666; margin-top: 1rem;">দ্রুত এবং সহজে প্রয়োজনীয় তথ্য খুঁজে বের করুন</p>
+                </div>
+
+                <div style="background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.3s;">
+                    <h3 style="color: #FF4B4B; display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 2rem;">📊</span> ডেটা ব্যবস্থাপনা
+                    </h3>
+                    <p style="color: #666; margin-top: 1rem;">সকল তথ্য সুশৃঙ্খলভাবে সংরক্ষণ এবং পরিচালনা করুন</p>
+                </div>
+            </div>
+        </div>
+
+        <style>
+        div[style*="box-shadow"]:hover {
+            transform: translateY(-5px);
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
 
 def show_search_page():
     st.header("🔍 উন্নত অনুসন্ধান")
