@@ -278,116 +278,140 @@ def display_record_card(record, record_id):
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
 
-    # Clear All Data button at the top
-    if st.button("🗑️ সমস্ত ডেটা মুছুন", type="secondary", use_container_width=True):
-        st.session_state.confirm_delete_all = True
+    try:
+        # Get all files and organize them by folders
+        with st.spinner('ফাইল তালিকা লোড হচ্ছে...'):
+            files = st.session_state.storage.get_file_names()
+            if not files:
+                st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+                return
 
-    # Confirmation dialog for clearing all data
-    if 'confirm_delete_all' in st.session_state and st.session_state.confirm_delete_all:
-        st.warning("""
-        ⚠️ সতর্কতা!
-        আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?
-        এই কাজটি অপরিবর্তনীয়!
-        """)
+        # Organize files by folders
+        folders = {}
+        for file in files:
+            if '/' in file:
+                folder, filename = file.split('/', 1)
+                if folder not in folders:
+                    folders[folder] = []
+                folders[folder].append(file)
+            else:
+                if 'অন্যান্য' not in folders:
+                    folders['অন্যান্য'] = []
+                folders['অন্যান্য'].append(file)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("হ্যাঁ, সব মুছে ফেলুন", type="primary", use_container_width=True):
-                try:
-                    st.session_state.storage.delete_all_records()
-                    st.success("✅ সমস্ত ডেটা সফলভাবে মুছে ফেলা হয়েছে")
-                    st.session_state.confirm_delete_all = False
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+        selected_folder = st.selectbox("📁 ফোল্ডার নির্বাচন করুন", list(folders.keys()))
 
-        with col2:
-            if st.button("না, বাতিল করুন", type="secondary", use_container_width=True):
-                st.session_state.confirm_delete_all = False
-                st.rerun()
-
-    # Data management section
-    st.markdown("""
-        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 10px; text-align: center; margin-bottom: 2rem;">
-            <h4 style="margin-bottom: 0.5rem;">ডাটা ম্যানেজমেন্ট</h4>
-        </div>
-    """, unsafe_allow_html=True)
-
-    # Get all files and organize them by folders
-    files = st.session_state.storage.get_file_names()
-    if not files:
-        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-        return
-
-    # Organize files by folders
-    folders = {}
-    for file in files:
-        if '/' in file:
-            folder, filename = file.split('/', 1)
-            if folder not in folders:
-                folders[folder] = []
-            folders[folder].append(file)
-        else:
-            if 'অন্যান্য' not in folders:
-                folders['অন্যান্য'] = []
-            folders['অন্যান্য'].append(file)
-
-    # Display folders as tabs
-    selected_folder = st.selectbox("📁 ফোল্ডার নির্বাচন করুন", list(folders.keys()))
-
-    if selected_folder:
-        files_in_folder = folders[selected_folder]
-
-        # File selection and delete button in the same row
-        col1, col2 = st.columns([4, 1])
-
-        with col1:
+        if selected_folder:
+            files_in_folder = folders[selected_folder]
             selected_file = st.selectbox(
                 "📄 ফাইল নির্বাচন করুন",
                 files_in_folder,
                 index=0 if files_in_folder else None
             )
 
-        with col2:
-            if selected_file and st.button("🗑️ ফাইল মুছুন", key=f"delete_file_{selected_file}"):
-                st.session_state.file_to_delete = selected_file
+            if selected_file:
+                # Add pagination
+                page = st.number_input('পৃষ্ঠা নম্বর', min_value=1, value=1)
+                per_page = st.select_slider('প্রতি পৃষ্ঠায় রেকর্ড সংখ্যা', 
+                                          options=[50, 100, 200, 500], 
+                                          value=100)
 
-        # File deletion confirmation
-        if st.session_state.file_to_delete:
-            st.warning(f"""
-            ⚠️ সতর্কতা!
-            আপনি কি নিশ্চিত যে আপনি '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলতে চান?
-            """)
-
-            confirm_col1, confirm_col2 = st.columns([1, 1])
-            with confirm_col1:
-                if st.button("হ্যাঁ, মুছে ফেলুন", key="confirm_file_delete", type="primary"):
-                    try:
-                        st.session_state.storage.delete_file_data(st.session_state.file_to_delete)
-                        st.success(f"✅ '{st.session_state.file_to_delete}' ফাইল এবং এর সকল রেকর্ড মুছে ফেলা হয়েছে")
-                        st.session_state.file_to_delete = None
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ ফাইল মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
-
-            with confirm_col2:
-                if st.button("না, বাতিল করুন", key="cancel_file_delete", type="secondary"):
-                    st.session_state.file_to_delete = None
-                    st.rerun()
-
-        # Display file data
-        if selected_file:
-            with st.spinner('তথ্য লোড হচ্ছে...'):
-                records = st.session_state.storage.get_file_data(selected_file)
-                if records:
-                    df = pd.DataFrame(records)
-                    st.dataframe(
-                        df,
-                        use_container_width=True,
-                        hide_index=True
+                with st.spinner('তথ্য লোড হচ্ছে...'):
+                    result = st.session_state.storage.get_file_data(
+                        selected_file, 
+                        page=page, 
+                        per_page=per_page
                     )
-                else:
-                    st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
+
+                    if result['records']:
+                        st.info(f"মোট {result['total']} রেকর্ডের মধ্যে {per_page} টি দেখানো হচ্ছে (পৃষ্ঠা {page}/{result['pages']})")
+                        df = pd.DataFrame(result['records'])
+                        st.dataframe(df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("❌ নির্বাচিত ফাইলে কোন তথ্য নেই")
+
+    except Exception as e:
+        st.error(f"❌ তথ্য লোড করতে সমস্যা হয়েছে: {str(e)}")
+        logger.error(f"Error in show_all_data_page: {str(e)}")
+
+def show_analysis_page():
+    st.header("📊 পেশা ভিত্তিক বিশ্লেষণ")
+
+    try:
+        with st.spinner('ফাইল তালিকা লোড হচ্ছে...'):
+            files = st.session_state.storage.get_file_names()
+            if not files:
+                st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+                return
+
+        # Organize files by folders
+        folders = set()
+        for file in files:
+            if '/' in file:
+                folder = file.split('/', 1)[0]
+                folders.add(folder)
+
+        # Add 'All' option at the beginning
+        folder_list = ["সকল"] + sorted(list(folders))
+
+        selected_folder = st.selectbox(
+            "📁 ফোল্ডার নির্বাচন করুন",
+            folder_list,
+            key="analysis_folder_select"
+        )
+
+        if selected_folder:
+            st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
+
+            with st.spinner('বিশ্লেষণ চলছে...'):
+                try:
+                    # Get occupation statistics directly from database
+                    stats = st.session_state.storage.get_occupation_stats(selected_folder)
+
+                    if stats:
+                        total_records = sum(count for _, count in stats)
+
+                        # Create DataFrame for visualization
+                        df = pd.DataFrame(stats, columns=['পেশা', 'সংখ্যা'])
+                        df['শতাংশ'] = (df['সংখ্যা'] / total_records * 100).round(2)
+
+                        # Show total records
+                        st.markdown(f"""
+                            <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                                <h4 style="margin: 0;">📈 মোট রেকর্ড: {total_records:,}</h4>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                        # Display data in two columns
+                        col1, col2 = st.columns([3, 2])
+
+                        with col1:
+                            # Bar chart
+                            st.bar_chart(
+                                df.set_index('পেশা')['সংখ্যা'],
+                                use_container_width=True
+                            )
+
+                        with col2:
+                            # Detailed stats table
+                            st.markdown("""
+                                <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                            st.dataframe(df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
+
+                except Exception as e:
+                    st.error(f"বিশ্লেষণে সমস্যা হয়েছে: {str(e)}")
+                    logger.error(f"Analysis error: {str(e)}")
+
+    except Exception as e:
+        st.error(f"❌ ফোল্ডার তালিকা লোড করতে সমস্যা হয়েছে: {str(e)}")
+        logger.error(f"Error loading folders: {str(e)}")
+
 
 def show_home_page():
     # Container for better spacing
@@ -587,102 +611,80 @@ def show_search_page():
 def show_analysis_page():
     st.header("📊 পেশা ভিত্তিক বিশ্লেষণ")
 
-    # Get all files and organize them by folders
-    files = st.session_state.storage.get_file_names()
-    if not files:
-        st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-        return
+    try:
+        with st.spinner('ফাইল তালিকা লোড হচ্ছে...'):
+            files = st.session_state.storage.get_file_names()
+            if not files:
+                st.info("❌ কোন ফাইল আপলোড করা হয়নি")
+                return
 
-    # Organize files by folders
-    folders = set()
-    for file in files:
-        if '/' in file:
-            folder = file.split('/', 1)[0]
-            folders.add(folder)
+        # Organize files by folders
+        folders = set()
+        for file in files:
+            if '/' in file:
+                folder = file.split('/', 1)[0]
+                folders.add(folder)
 
-    # Add 'All' option at the beginning
-    folder_list = ["সকল"] + sorted(list(folders))
+        # Add 'All' option at the beginning
+        folder_list = ["সকল"] + sorted(list(folders))
 
-    # Folder selection
-    selected_folder = st.selectbox(
-        "📁 ফোল্ডার নির্বাচন করুন",
-        folder_list,
-        key="analysis_folder_select"
-    )
+        selected_folder = st.selectbox(
+            "📁 ফোল্ডার নির্বাচন করুন",
+            folder_list,
+            key="analysis_folder_select"
+        )
 
-    if selected_folder:
-        st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
+        if selected_folder:
+            st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
 
-        try:
-            # Get all records for selected folder
-            all_records = []
-            if selected_folder == "সকল":
-                all_records = st.session_state.storage.get_all_records()
-            else:
-                for file in files:
-                    if file.startswith(f"{selected_folder}/"):
-                        records = st.session_state.storage.get_file_data(file)
-                        all_records.extend(records)
+            with st.spinner('বিশ্লেষণ চলছে...'):
+                try:
+                    # Get occupation statistics directly from database
+                    stats = st.session_state.storage.get_occupation_stats(selected_folder)
 
-            if all_records:
-                # Count occupations
-                occupation_counts = {}
-                for record in all_records:
-                    occupation = record.get('পেশা', '').strip()
-                    occupation = occupation if occupation else 'অজানা'
-                    occupation_counts[occupation] = occupation_counts.get(occupation, 0) + 1
+                    if stats:
+                        total_records = sum(count for _, count in stats)
 
-                # Create DataFrame for visualization
-                df = pd.DataFrame(
-                    list(occupation_counts.items()),
-                    columns=['পেশা', 'সংখ্যা']
-                ).sort_values('সংখ্যা', ascending=False)
+                        # Create DataFrame for visualization
+                        df = pd.DataFrame(stats, columns=['পেশা', 'সংখ্যা'])
+                        df['শতাংশ'] = (df['সংখ্যা'] / total_records * 100).round(2)
 
-                # Show total records
-                st.markdown(f"""
-                    <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-                        <h4 style="margin: 0;">📈 মোট রেকর্ড: {len(all_records)}</h4>
-                    </div>
-                """, unsafe_allow_html=True)
+                        # Show total records
+                        st.markdown(f"""
+                            <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
+                                <h4 style="margin: 0;">📈 মোট রেকর্ড: {total_records:,}</h4>
+                            </div>
+                        """, unsafe_allow_html=True)
 
-                # Display data in two columns
-                col1, col2 = st.columns([3, 2])
+                        # Display data in two columns
+                        col1, col2 = st.columns([3, 2])
 
-                with col1:
-                    # Bar chart
-                    st.bar_chart(
-                        df.set_index('পেশা')['সংখ্যা'],
-                        use_container_width=True
-                    )
+                        with col1:
+                            # Bar chart
+                            st.bar_chart(
+                                df.set_index('পেশা')['সংখ্যা'],
+                                use_container_width=True
+                            )
 
-                with col2:
-                    # Detailed stats table
-                    st.markdown("""
-                        <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
-                        </div>
-                    """, unsafe_allow_html=True)
+                        with col2:
+                            # Detailed stats table
+                            st.markdown("""
+                                <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                    <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
+                                </div>
+                            """, unsafe_allow_html=True)
 
-                    st.dataframe(
-                        df,
-                        use_container_width=True,
-                        hide_index=True
-                    )
+                            st.dataframe(df, use_container_width=True, hide_index=True)
+                    else:
+                        st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
 
-                    # Calculate and show percentages
-                    df['শতাংশ'] = (df['সংখ্যা'] / len(all_records) * 100).round(2)
-                    st.markdown("#### শতাংশ বিভাজন")
-                    st.dataframe(
-                        df[['পেশা', 'শতাংশ']],
-                        use_container_width=True,
-                        hide_index=True
-                    )
-            else:
-                st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
+                except Exception as e:
+                    st.error(f"বিশ্লেষণে সমস্যা হয়েছে: {str(e)}")
+                    logger.error(f"Analysis error: {str(e)}")
 
-        except Exception as e:
-            st.error(f"বিশ্লেষণে সমস্যা হয়েছে: {str(e)}")
-            logger.error(f"Analysis error: {str(e)}")
+    except Exception as e:
+        st.error(f"❌ ফোল্ডার তালিকা লোড করতে সমস্যা হয়েছে: {str(e)}")
+        logger.error(f"Error loading folders: {str(e)}")
 
 def show_relations_page():
     """Display relations list page with improved functionality"""
@@ -702,7 +704,7 @@ def show_relations_page():
                 folder = file.split('/', 1)[0]
                 folders.add(folder)
 
-        # Add"All" option at the beginning
+        # Add "All" option at the beginning
         folder_list = ["সকল"] + sorted(list(folders))
 
         # Folder selection

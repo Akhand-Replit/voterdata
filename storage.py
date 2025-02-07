@@ -6,6 +6,9 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 import os
 import enum
 import time
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.sql import text
+import functools
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,7 +56,7 @@ class Storage:
         self.initialize_database()
 
     def initialize_database(self):
-        """Initialize database with retry mechanism"""
+        """Initialize database with connection pooling and retry mechanism"""
         max_retries = 3
         retry_delay = 1  # seconds
 
@@ -63,11 +66,19 @@ class Storage:
                 if not database_url:
                     raise ValueError("DATABASE_URL environment variable is not set")
 
-                self.engine = create_engine(database_url)
+                # Configure connection pooling
+                self.engine = create_engine(
+                    database_url,
+                    poolclass=QueuePool,
+                    pool_size=10,
+                    max_overflow=20,
+                    pool_timeout=30,
+                    pool_pre_ping=True  # Enable connection health checks
+                )
                 Base.metadata.create_all(self.engine)
                 Session = sessionmaker(bind=self.engine)
                 self.session = Session()
-                logger.info("Database initialized successfully")
+                logger.info("Database initialized successfully with connection pooling")
                 return
             except Exception as e:
                 logger.error(f"Error initializing database (attempt {attempt + 1}/{max_retries}): {str(e)}")
@@ -128,18 +139,32 @@ class Storage:
         self.execute_with_retry(operation)
 
 
-    def get_file_data(self, filename):
-        """Get data for a specific file."""
+    @functools.lru_cache(maxsize=128)
+    def get_file_names(self):
+        """Get list of all uploaded files with caching."""
         def operation():
-            records = self.session.query(Record).filter_by(file_name=filename).all()
-            return [self._record_to_dict(record, include_id=True) for record in records]
+            # Use more efficient query
+            result = self.session.execute(
+                text("SELECT DISTINCT file_name FROM records")
+            )
+            return [row[0] for row in result]
         return self.execute_with_retry(operation)
 
-    def get_file_names(self):
-        """Get list of all uploaded files."""
+    def get_file_data(self, filename, page=1, per_page=100):
+        """Get paginated data for a specific file."""
         def operation():
-            files = self.session.query(Record.file_name).distinct().all()
-            return [file[0] for file in files]
+            offset = (page - 1) * per_page
+            records = (self.session.query(Record)
+                      .filter_by(file_name=filename)
+                      .limit(per_page)
+                      .offset(offset)
+                      .all())
+            total = self.session.query(Record).filter_by(file_name=filename).count()
+            return {
+                'records': [self._record_to_dict(record, include_id=True) for record in records],
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
         return self.execute_with_retry(operation)
 
     def get_all_records(self):
@@ -349,3 +374,20 @@ class Storage:
                 logger.error(f"Error deleting all records: {str(e)}")
                 raise
         self.execute_with_retry(operation)
+
+    def get_occupation_stats(self, folder=None):
+        """Get occupation statistics efficiently using SQL."""
+        def operation():
+            query = """
+                SELECT পেশা, COUNT(*) as count
+                FROM records
+                WHERE পেশা IS NOT NULL AND পেশা != ''
+                AND (CASE WHEN :folder != 'সকল' THEN 
+                    SPLIT_PART(file_name, '/', 1) = :folder
+                    ELSE TRUE END)
+                GROUP BY পেশা
+                ORDER BY count DESC
+            """
+            result = self.session.execute(text(query), {'folder': folder})
+            return [(row[0], row[1]) for row in result]
+        return self.execute_with_retry(operation)
