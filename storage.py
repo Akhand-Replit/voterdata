@@ -207,18 +207,23 @@ class Storage:
                 self.session.commit()
                 logger.info(f"Successfully marked record {record_id} as {relation_type.value}")
                 return True
+            logger.warning(f"No record found with ID {record_id}")
             return False
         except Exception as e:
             self.session.rollback()
-            logger.error(f"Error marking record {record_id}: {str(e)}")
+            logger.error(f"Error marking record {record_id} as {relation_type.value}: {str(e)}")
             return False
 
     def get_relations_by_type(self, relation_type: RelationType, folder: str = None):
         """Get all records marked as friends or enemies, optionally filtered by folder"""
-        query = self.session.query(Record).filter_by(relation_type=relation_type)
+        try:
+            query = self.session.query(Record).filter_by(relation_type=relation_type)
 
-        if folder:
-            query = query.filter(Record.file_name.like(f"{folder}/%"))
+            if folder:
+                query = query.filter(Record.file_name.like(f"{folder}/%"))
 
-        records = query.all()
-        return [self._record_to_dict(record, include_id=True) for record in records]
+            records = query.all()
+            return [self._record_to_dict(record, include_id=True) for record in records]
+        except Exception as e:
+            logger.error(f"Error getting relations by type {relation_type}: {str(e)}")
+            return []

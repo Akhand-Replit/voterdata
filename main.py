@@ -209,6 +209,8 @@ def edit_record(record_id, record_data):
 
 def display_record_card(record, record_id):
     """Display a single record in a card format with relation buttons"""
+    relation_type = record.get('relation_type', RelationType.NONE.value)
+
     st.markdown(f"""
     <div class='record-card'>
         <h4>🪪 {record['নাম']}</h4>
@@ -221,6 +223,11 @@ def display_record_card(record, record_id):
         <p><strong>ঠিকানা:</strong> {record['ঠিকানা']}</p>
         <div style="border-top: 1px solid #eee; margin-top: 1rem; padding-top: 0.5rem;">
             <p style="color: #666; font-size: 0.9em;">📂 ফাইল অবস্থান: {record['file_name']}</p>
+            <p style="color: #666; font-size: 0.9em;">🔗 সম্পর্ক: {
+                "বন্ধু" if relation_type == RelationType.FRIEND.value 
+                else "শত্রু" if relation_type == RelationType.ENEMY.value 
+                else "অজানা"
+            }</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -245,20 +252,23 @@ def display_record_card(record, record_id):
                     st.error(f"❌ রেকর্ড মুছে ফেলার সময় সমস্যা: {str(e)}")
 
     with col3:
-        if record.get('relation_type') != RelationType.FRIEND.value:
+        if relation_type != RelationType.FRIEND.value:
             if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}"):
                 if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
                     st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
                     st.rerun()
+                else:
+                    st.error("❌ বন্ধু হিসেবে চিহ্নিত করা যায়নি")
 
     with col4:
-        if record.get('relation_type') != RelationType.ENEMY.value:
+        if relation_type != RelationType.ENEMY.value:
             if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}"):
                 if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
                     st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
                     st.rerun()
+                else:
+                    st.error("❌ শত্রু হিসেবে চিহ্নিত করা যায়নি")
 
-    # Show edit form if this record is being edited
     if st.session_state.editing == record_id:
         if edit_record(record_id, record):
             st.session_state.editing = None
