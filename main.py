@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from data_processor import process_text_file
-from storage import Storage
+from storage import Storage, RelationType
 import io
 import logging
 
@@ -245,15 +245,15 @@ def display_record_card(record, record_id):
                     st.error(f"❌ রেকর্ড মুছে ফেলার সময় সমস্যা: {str(e)}")
 
     with col3:
-        if record.get('relation_type') != 'friend':
-            if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}", type="primary"):
+        if record.get('relation_type') != RelationType.FRIEND.value:
+            if st.button("👥 বন্ধু হিসেবে চিহ্নিত করুন", key=f"friend_{record_id}"):
                 if st.session_state.storage.mark_relation(record_id, RelationType.FRIEND):
                     st.success("✅ বন্ধু হিসেবে চিহ্নিত করা হয়েছে")
                     st.rerun()
 
     with col4:
-        if record.get('relation_type') != 'enemy':
-            if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}", type="secondary"):
+        if record.get('relation_type') != RelationType.ENEMY.value:
+            if st.button("⚔️ শত্রু হিসেবে চিহ্নিত করুন", key=f"enemy_{record_id}"):
                 if st.session_state.storage.mark_relation(record_id, RelationType.ENEMY):
                     st.success("✅ শত্রু হিসেবে চিহ্নিত করা হয়েছে")
                     st.rerun()
@@ -801,73 +801,66 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-
 def show_relations_page():
     st.header("👥 সম্পর্ক তালিকা")
 
-    # Get all files and organize them by folders
+    # Get all folders
     files = st.session_state.storage.get_file_names()
     if not files:
         st.info("❌ কোন ফাইল আপলোড করা হয়নি")
         return
 
-    # Organize files by folders
-    folders = set()
-    for file in files:
-        if '/' in file:
-            folder = file.split('/', 1)[0]
-            folders.add(folder)
-
-    # Add "All Folders" option
-    folders = ["সকল ফোল্ডার"] + sorted(list(folders))
+    folders = set(file.split('/')[0] for file in files if '/' in file)
+    folders.add('সকল')  # Add an option to show all relations
 
     # Folder selection
     selected_folder = st.selectbox(
         "📁 ফোল্ডার নির্বাচন করুন",
-        folders,
-        key="relations_folder_select"
+        list(folders),
+        index=0 if folders else None
     )
 
-    # Create tabs for Friends and Enemies
-    friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
+    if selected_folder:
+        # Create tabs for friends and enemies
+        tab1, tab2 = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
 
-    with friend_tab:
-        folder = None if selected_folder == "সকল ফোল্ডার" else selected_folder
-        friends = st.session_state.storage.get_relations_by_type(RelationType.FRIEND, folder)
+        with tab1:
+            friends = st.session_state.storage.get_relations_by_type(
+                RelationType.FRIEND,
+                None if selected_folder == 'সকল' else selected_folder
+            )
+            if friends:
+                st.write(f"মোট {len(friends)} জন বন্ধু পাওয়া গেছে:")
+                for friend in friends:
+                    display_record_card(friend, friend['id'])
+            else:
+                st.info("কোন বন্ধু তালিকাভুক্ত করা হয়নি")
 
-        if friends:
-            st.write(f"📊 মোট {len(friends)}টি বন্ধু")
-            for friend in friends:
-                record_id = friend.pop('id')
-                display_record_card(friend, record_id)
-        else:
-            st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
+        with tab2:
+            enemies = st.session_state.storage.get_relations_by_type(
+                RelationType.ENEMY,
+                None if selected_folder == 'সকল' else selected_folder
+            )
+            if enemies:
+                st.write(f"মোট {len(enemies)} জন শত্রু তালিকাভুক্ত আছে:")
+                for enemy in enemies:
+                    display_record_card(enemy, enemy['id'])
+            else:
+                st.info("কোন শত্রু তালিকাভুক্ত করা হয়নি")
 
-    with enemy_tab:
-        folder = None if selected_folder == "সকল ফোল্ডার" else selected_folder
-        enemies = st.session_state.storage.get_relations_by_type(RelationType.ENEMY, folder)
-
-        if enemies:
-            st.write(f"📊 মোট {len(enemies)}টি শত্রু")
-            for enemy in enemies:
-                record_id = enemy.pop('id')
-                display_record_card(enemy, record_id)
-        else:
-            st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
-
-# Update main() function
+# Update the page routing to include the relations page
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
-    if "🏠 হোম" == page:
+    if page == "🏠 হোম":
         show_home_page()
-    elif "📤 ফাইল আপলোড" == page:
+    elif page == "📤 ফাইল আপলোড":
         show_upload_page()
-    elif "🔍 অনুসন্ধান" == page:
+    elif page == "🔍 অনুসন্ধান":
         show_search_page()
-    elif "📊 ডেটা বিশ্লেষণ" == page:
+    elif page == "📊 ডেটা বিশ্লেষণ":
         show_analysis_page()
-    elif "👥 সম্পর্ক তালিকা" == page:
+    elif page == "👥 সম্পর্ক তালিকা":
         show_relations_page()
     else:
         show_all_data_page()
