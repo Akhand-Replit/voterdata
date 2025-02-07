@@ -294,73 +294,12 @@ def display_record_card(record, record_id):
                     </div>
                 </div>
             </div>
-
-            <div style="
-                display: grid;
-                grid-template-columns: repeat(4, 1fr);
-                gap: 1rem;
-                margin-top: 1.5rem;
-            ">
-                <button style="
-                    background: #FF4B4B;
-                    color: white;
-                    border: none;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: opacity 0.2s;
-                    width: 100%;
-                " onclick="document.querySelector('#edit_{record_id}').click()">
-                    ✏️ সম্পাদনা
-                </button>
-                <button style="
-                    background: #f44336;
-                    color: white;
-                    border: none;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: opacity 0.2s;
-                    width: 100%;
-                " onclick="document.querySelector('#delete_{record_id}').click()">
-                    🗑️ মুছুন
-                </button>
-                <button style="
-                    background: {'#4CAF50' if relation_type != RelationType.FRIEND.value else '#e0e0e0'};
-                    color: white;
-                    border: none;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: opacity 0.2s;
-                    width: 100%;
-                    display: {'none' if relation_type == RelationType.FRIEND.value else 'block'};
-                " onclick="document.querySelector('#friend_{record_id}').click()">
-                    👥 বন্ধু হিসেবে যোগ করুন
-                </button>
-                <button style="
-                    background: {'#FF9800' if relation_type != RelationType.ENEMY.value else '#e0e0e0'};
-                    color: white;
-                    border: none;
-                    padding: 0.75rem;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-weight: 500;
-                    transition: opacity 0.2s;
-                    width: 100%;
-                    display: {'none' if relation_type == RelationType.ENEMY.value else 'block'};
-                " onclick="document.querySelector('#enemy_{record_id}').click()">
-                    ⚔️ শত্রু হিসেবে যোগ করুন
-                </button>
-            </div>
         </div>
         """, unsafe_allow_html=True)
 
-        # Hidden buttons for JavaScript click handlers
+        # Action buttons
         col1, col2, col3, col4 = st.columns(4)
+
         with col1:
             if st.button("✏️ সম্পাদনা", key=f"edit_{record_id}", type="primary"):
                 st.session_state.editing = record_id
@@ -728,7 +667,7 @@ def show_home_page():
             st.markdown(
                 f"""
                 <div style="text-align: center; padding: 1.5rem; background: white; 
-                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,00,0,0.1);">
                     <h3 style="color: #FF4B4B; font-size: 2rem;">📁</h3>
                     <h4>মোট ফোল্ডার</h4>
                     <p style="font-size: 1.5rem; color: #FF4B4B;">{len(folders)}</p>
