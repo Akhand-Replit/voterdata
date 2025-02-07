@@ -40,6 +40,9 @@ if 'file_to_delete' not in st.session_state:
     st.session_state.file_to_delete = None
 
 # Initialize confirmation dialogs state
+if 'confirm_delete_all' not in st.session_state:
+    st.session_state.confirm_delete_all = False
+
 if 'confirm_delete' not in st.session_state:
     st.session_state.confirm_delete = False
 
@@ -236,6 +239,34 @@ def display_record_card(record, record_id):
 
 def show_all_data_page():
     st.header("📋 সংরক্ষিত সকল তথ্য")
+
+    # Clear All Data button at the top
+    if st.button("🗑️ সমস্ত ডেটা মুছুন", type="secondary", use_container_width=True):
+        st.session_state.confirm_delete_all = True
+
+    # Confirmation dialog for clearing all data
+    if 'confirm_delete_all' in st.session_state and st.session_state.confirm_delete_all:
+        st.warning("""
+        ⚠️ সতর্কতা!
+        আপনি কি নিশ্চিত যে আপনি সমস্ত ডেটা মুছে ফেলতে চান?
+        এই কাজটি অপরিবর্তনীয়!
+        """)
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("হ্যাঁ, সব মুছে ফেলুন", type="primary", use_container_width=True):
+                try:
+                    st.session_state.storage.delete_all_records()
+                    st.success("✅ সমস্ত ডেটা সফলভাবে মুছে ফেলা হয়েছে")
+                    st.session_state.confirm_delete_all = False
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ ডেটা মুছে ফেলার সময় সমস্যা হয়েছে: {str(e)}")
+
+        with col2:
+            if st.button("না, বাতিল করুন", type="secondary", use_container_width=True):
+                st.session_state.confirm_delete_all = False
+                st.rerun()
 
     # Data management section
     st.markdown("""
