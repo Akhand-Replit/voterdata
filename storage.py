@@ -1,7 +1,7 @@
 import logging
-from sqlalchemy import create_engine, Column, String, Integer, Enum
+from sqlalchemy import create_engine, Column, String, Integer, Enum, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 import os
 import enum
 
@@ -28,7 +28,31 @@ class Record(Base):
     পেশা = Column(String)
     জন্ম_তারিখ = Column(String)
     ঠিকানা = Column(String)
-    relation_type = Column(Enum(RelationType), default=RelationType.NONE, nullable=False)
+
+    # Add relationship to RelationRecord
+    relations = relationship("RelationRecord", back_populates="record")
+
+class RelationRecord(Base):
+    __tablename__ = 'relations'
+
+    id = Column(Integer, primary_key=True)
+    record_id = Column(Integer, ForeignKey('records.id'))
+    relation_type = Column(Enum(RelationType), nullable=False)
+    folder = Column(String)
+
+    # Store copied data for quick access
+    ক্রমিক_নং = Column(String)
+    নাম = Column(String)
+    ভোটার_নং = Column(String)
+    পিতার_নাম = Column(String)
+    মাতার_নাম = Column(String)
+    পেশা = Column(String)
+    জন্ম_তারিখ = Column(String)
+    ঠিকানা = Column(String)
+    file_name = Column(String)
+
+    # Add relationship to Record
+    record = relationship("Record", back_populates="relations")
 
 class Storage:
     def __init__(self):
@@ -199,16 +223,46 @@ class Storage:
             raise
 
     def mark_relation(self, record_id: int, relation_type: RelationType) -> bool:
-        """Mark a record as friend or enemy"""
+        """Mark a record as friend or enemy by creating a relation record"""
         try:
+            # Get the original record
             record = self.session.query(Record).filter_by(id=record_id).first()
-            if record:
-                record.relation_type = relation_type
-                self.session.commit()
-                logger.info(f"Successfully marked record {record_id} as {relation_type.value}")
+            if not record:
+                logger.warning(f"No record found with ID {record_id}")
+                return False
+
+            # Check if relation already exists
+            existing_relation = self.session.query(RelationRecord).filter_by(
+                record_id=record_id,
+                relation_type=relation_type
+            ).first()
+
+            if existing_relation:
+                logger.info(f"Relation already exists for record {record_id}")
                 return True
-            logger.warning(f"No record found with ID {record_id}")
-            return False
+
+            # Create new relation record with copied data
+            folder = record.file_name.split('/')[0] if '/' in record.file_name else None
+            relation = RelationRecord(
+                record_id=record.id,
+                relation_type=relation_type,
+                folder=folder,
+                ক্রমিক_নং=record.ক্রমিক_নং,
+                নাম=record.নাম,
+                ভোটার_নং=record.ভোটার_নং,
+                পিতার_নাম=record.পিতার_নাম,
+                মাতার_নাম=record.মাতার_নাম,
+                পেশা=record.পেশা,
+                জন্ম_তারিখ=record.জন্ম_তারিখ,
+                ঠিকানা=record.ঠিকানা,
+                file_name=record.file_name
+            )
+
+            self.session.add(relation)
+            self.session.commit()
+            logger.info(f"Successfully marked record {record_id} as {relation_type.value}")
+            return True
+
         except Exception as e:
             self.session.rollback()
             logger.error(f"Error marking record {record_id} as {relation_type.value}: {str(e)}")
@@ -217,13 +271,26 @@ class Storage:
     def get_relations_by_type(self, relation_type: RelationType, folder: str = None):
         """Get all records marked as friends or enemies, optionally filtered by folder"""
         try:
-            query = self.session.query(Record).filter_by(relation_type=relation_type)
+            query = self.session.query(RelationRecord).filter_by(relation_type=relation_type)
 
-            if folder:
-                query = query.filter(Record.file_name.like(f"{folder}/%"))
+            if folder and folder != "সকল":
+                query = query.filter_by(folder=folder)
 
-            records = query.all()
-            return [self._record_to_dict(record, include_id=True) for record in records]
+            relations = query.all()
+            return [{
+                'id': relation.record_id,
+                'ক্রমিক_নং': relation.ক্রমিক_নং,
+                'নাম': relation.নাম,
+                'ভোটার_নং': relation.ভোটার_নং,
+                'পিতার_নাম': relation.পিতার_নাম,
+                'মাতার_নাম': relation.মাতার_নাম,
+                'পেশা': relation.পেশা,
+                'জন্ম_তারিখ': relation.জন্ম_তারিখ,
+                'ঠিকানা': relation.ঠিকানা,
+                'file_name': relation.file_name,
+                'relation_type': relation.relation_type.value
+            } for relation in relations]
+
         except Exception as e:
             logger.error(f"Error getting relations by type {relation_type}: {str(e)}")
             return []
