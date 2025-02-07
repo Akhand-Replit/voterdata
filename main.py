@@ -5,6 +5,7 @@ from storage import Storage, RelationType
 import io
 import logging
 import functools
+from auth import init_auth, login_form, logout  # Add this line at the top
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -587,7 +588,21 @@ def show_relations_page():
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
 
-    if page =="🏠 হোম":
+    # Initialize authentication
+    init_auth()
+
+    # Show logout button in sidebar if authenticated
+    if st.session_state.authenticated:
+        if st.sidebar.button("🚪 লগআউট", type="secondary"):
+            logout()
+            st.rerun()
+
+    # Check authentication before showing content
+    if not login_form():
+        return
+
+    # Rest of the main function remains unchanged
+    if page == "🏠 হোম":
         show_home_page()
     elif page == "📤 ফাইল আপলোড":
         show_upload_page()
@@ -643,8 +658,7 @@ def show_home_page():
         with col1:
             st.markdown(
                 f"""
-                <div style="text-align: center; padding: 1.5rem; background: white; 
-                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,00,0,0.1);">
+                <div style="text-align: center; padding: 1.5rem; background: white;                             border-radius: 15px; box-shadow: 0 4px 6px rgba(0,00,0,0.1);">
                     <h3 style="color: #FF4B4B; font-size: 2rem;">📁</h3>
                     <h4>মোট ফোল্ডার</h4>
                     <p style="font-size: 1.5rem; color: #FF4B4B;">{len(folders)}</p>
