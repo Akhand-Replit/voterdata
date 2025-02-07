@@ -4,6 +4,7 @@ from data_processor import process_text_file
 from storage import Storage, RelationType
 import io
 import logging
+import functools
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -542,6 +543,7 @@ def show_relations_page():
         st.error(f"সম্পর্ক তালিকা লোড করতে সমস্যা: {str(e)}")
         logger.error(f"Error in relations page: {str(e)}")
 
+
 # Update the page routing to include the relations page
 def main():
     st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
@@ -559,7 +561,20 @@ def main():
     else:
         show_all_data_page()
 
+@functools.lru_cache(maxsize=32)
+def get_folder_stats():
+    """Get cached folder statistics"""
+    if not hasattr(st.session_state, 'storage'):
+        return [], set(), 0
+
+    files = st.session_state.storage.get_file_names()
+    folders = set(file.split('/')[0] for file in files if '/' in file)
+    total_records = st.session_state.storage.get_total_records_count()
+
+    return files, folders, total_records
+
 def show_home_page():
+    """Optimized home page with caching"""
     # Container for better spacing
     container = st.container()
 
@@ -580,53 +595,50 @@ def show_home_page():
             unsafe_allow_html=True
         )
 
-        # Stats Section
-        if hasattr(st.session_state, 'storage'):
-            files = st.session_state.storage.get_file_names()
-            folders = set(file.split('/')[0] for file in files if '/' in file)
-            total_records = len(st.session_state.storage.get_all_records())
+        # Stats Section with cached data
+        files, folders, total_records = get_folder_stats()
 
-            # Create three columns for stats
-            col1, col2, col3 = st.columns(3)
+        # Create three columns for stats
+        col1, col2, col3 = st.columns(3)
 
-            with col1:
-                st.markdown(
-                    f"""
-                    <div style="text-align: center; padding: 1.5rem; background: white; 
-                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                        <h3 style="color: #FF4B4B; font-size: 2rem;">📁</h3>
-                        <h4>মোট ফোল্ডার</h4>
-                        <p style="font-size: 1.5rem; color: #FF4B4B;">{len(folders)}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        with col1:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 1.5rem; background: white; 
+                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem;">📁</h3>
+                    <h4>মোট ফোল্ডার</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{len(folders)}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-            with col2:
-                st.markdown(
-                    f"""
-                    <div style="text-align: center; padding: 1.5rem; background: white; 
-                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                        <h3 style="color: #FF4B4B; font-size: 2rem;">📄</h3>
-                        <h4>মোট ফাইল</h4>
-                        <p style="font-size: 1.5rem; color: #FF4B4B;">{len(files)}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        with col2:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 1.5rem; background: white; 
+                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem;">📄</h3>
+                    <h4>মোট ফাইল</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{len(files)}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-            with col3:
-                st.markdown(
-                    f"""
-                    <div style="text-align: center; padding: 1.5rem; background: white; 
-                                border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                        <h3 style="color: #FF4B4B; font-size: 2rem;">📊</h3>
-                        <h4>মোট রেকর্ড</h4>
-                        <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
+        with col3:
+            st.markdown(
+                f"""
+                <div style="text-align: center; padding: 1.5rem; background: white; 
+                            border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    <h3 style="color: #FF4B4B; font-size: 2rem;">📊</h3>
+                    <h4>মোট রেকর্ড</h4>
+                    <p style="font-size: 1.5rem; color: #FF4B4B;">{total_records}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
         # Features Section
         st.markdown("<br><br>", unsafe_allow_html=True)
@@ -753,171 +765,6 @@ def show_search_page():
             except Exception as e:
                 st.error(f"অনুসন্ধানে সমস্যা হয়েছে: {str(e)}")
                 logger.error(f"Search error: {str(e)}")
-
-def show_analysis_page():
-    st.header("📊 পেশা ভিত্তিক বিশ্লেষণ")
-
-    try:
-        with st.spinner('ফাইল তালিকা লোড হচ্ছে...'):
-            files = st.session_state.storage.get_file_names()
-            if not files:
-                st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-                return
-
-        # Organize files by folders
-        folders = set()
-        for file in files:
-            if '/' in file:
-                folder = file.split('/', 1)[0]
-                folders.add(folder)
-
-        # Add 'All' option at the beginning
-        folder_list = ["সকল"] + sorted(list(folders))
-
-        selected_folder = st.selectbox(
-            "📁 ফোল্ডার নির্বাচন করুন",
-            folder_list,
-            key="analysis_folder_select"
-        )
-
-        if selected_folder:
-            st.subheader(f"📊 {selected_folder} - পেশা অনুযায়ী বিশ্লেষণ")
-
-            with st.spinner('বিশ্লেষণ চলছে...'):
-                try:
-                    # Get occupation statistics directly from database
-                    stats = st.session_state.storage.get_occupation_stats(selected_folder)
-
-                    if stats:
-                        total_records = sum(count for _, count in stats)
-
-                        # Create DataFrame for visualization
-                        df = pd.DataFrame(stats, columns=['পেশা', 'সংখ্যা'])
-                        df['শতাংশ'] = (df['সংখ্যা'] / total_records * 100).round(2)
-
-                        # Show total records
-                        st.markdown(f"""
-                            <div style="background-color: #f0f2f6; padding: 1rem; border-radius: 10px; margin-bottom: 1rem;">
-                                <h4 style="margin: 0;">📈 মোট রেকর্ড: {total_records:,}</h4>
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                        # Display data in two columns
-                        col1, col2 = st.columns([3, 2])
-
-                        with col1:
-                            # Bar chart
-                            st.bar_chart(
-                                df.set_index('পেশা')['সংখ্যা'],
-                                use_container_width=True
-                            )
-
-                        with col2:
-                            # Detailed stats table
-                            st.markdown("""
-                                <div style="background-color: white; padding: 1rem; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                    <h4 style="margin-bottom: 1rem;">📋 বিস্তারিত তথ্য</h4>
-                                </div>
-                            """, unsafe_allow_html=True)
-
-                            st.dataframe(df, use_container_width=True, hide_index=True)
-                    else:
-                        st.info("❌ নির্বাচিত ফোল্ডারে কোন রেকর্ড নেই")
-
-                except Exception as e:
-                    st.error(f"বিশ্লেষণে সমস্যা হয়েছে: {str(e)}")
-                    logger.error(f"Analysis error: {str(e)}")
-
-    except Exception as e:
-        st.error(f"❌ ফোল্ডার তালিকা লোড করতে সমস্যা হয়েছে: {str(e)}")
-        logger.error(f"Error loading folders: {str(e)}")
-
-
-def show_relations_page():
-    """Display relations list page with improved functionality"""
-    st.header("👥 সম্পর্ক তালিকা")
-
-    try:
-        # Get all files and organize them by folders
-        files = st.session_state.storage.get_file_names()
-        if not files:
-            st.info("❌ কোন ফাইল আপলোড করা হয়নি")
-            return
-
-        # Organize files by folders
-        folders = set()
-        for file in files:
-            if '/' in file:
-                folder = file.split('/', 1)[0]
-                folders.add(folder)
-
-        # Add "All" option at the beginning
-        folder_list = ["সকল"] + sorted(list(folders))
-
-        # Folder selection
-        selected_folder = st.selectbox(
-            "📁 ফোল্ডার নির্বাচন করুন",
-            folder_list,
-            index=0
-        )
-
-        # Create tabs for Friends and Enemies
-        friend_tab, enemy_tab = st.tabs(["👥 বন্ধু তালিকা", "⚔️ শত্রু তালিকা"])
-
-        with friend_tab:
-            try:
-                friends = st.session_state.storage.get_relations_by_type(
-                    RelationType.FRIEND, 
-                    selected_folder
-                )
-                if friends:
-                    st.write(f"📊 মোট {len(friends)}টি বন্ধু তালিকাভুক্ত")
-                    for friend in friends:
-                        with st.expander(f"🤝 {friend['নাম']}", expanded=False):
-                            display_record_card(friend, friend['id'])
-                else:
-                    st.info("❌ কোন বন্ধু তালিকাভুক্ত নেই")
-            except Exception as e:
-                st.error(f"বন্ধু তালিকা লোড করতে সমস্যা: {str(e)}")
-                logger.error(f"Error loading friends list: {str(e)}")
-
-        with enemy_tab:
-            try:
-                enemies = st.session_state.storage.get_relations_by_type(
-                    RelationType.ENEMY, 
-                    selected_folder
-                )
-                if enemies:
-                    st.write(f"📊 মোট {len(enemies)}টি শত্রু তালিকাভুক্ত")
-                    for enemy in enemies:
-                        with st.expander(f"⚔️ {enemy['নাম']}", expanded=False):
-                            display_record_card(enemy, enemy['id'])
-                else:
-                    st.info("❌ কোন শত্রু তালিকাভুক্ত নেই")
-            except Exception as e:
-                st.error(f"শত্রু তালিকা লোড করতে সমস্যা: {str(e)}")
-                logger.error(f"Error loading enemies list: {str(e)}")
-
-    except Exception as e:
-        st.error(f"সম্পর্ক তালিকা লোড করতে সমস্যা: {str(e)}")
-        logger.error(f"Error in relations page: {str(e)}")
-
-# Update the page routing to include the relations page
-def main():
-    st.title("📚 বাংলা টেক্সট প্রসেসিং অ্যাপ্লিকেশন")
-
-    if page == "🏠 হোম":
-        show_home_page()
-    elif page == "📤 ফাইল আপলোড":
-        show_upload_page()
-    elif page == "🔍 অনুসন্ধান":
-        show_search_page()
-    elif page == "📊 ডেটা বিশ্লেষণ":
-        show_analysis_page()
-    elif page == "👥 সম্পর্ক তালিকা":
-        show_relations_page()
-    else:
-        show_all_data_page()
 
 if __name__ == "__main__":
     main()

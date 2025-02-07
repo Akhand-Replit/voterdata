@@ -391,3 +391,14 @@ class Storage:
             result = self.session.execute(text(query), {'folder': folder})
             return [(row[0], row[1]) for row in result]
         return self.execute_with_retry(operation)
+
+    def get_total_records_count(self):
+        """Get total count of records efficiently using SQL COUNT."""
+        def operation():
+            try:
+                result = self.session.execute(text("SELECT COUNT(*) FROM records"))
+                return result.scalar()
+            except Exception as e:
+                logger.error(f"Error getting total records count: {str(e)}")
+                return 0
+        return self.execute_with_retry(operation)
